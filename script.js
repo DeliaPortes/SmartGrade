@@ -330,7 +330,6 @@ function nav(page){
   (pages[role]?.[page] || (()=>{ c.innerHTML='<div class="empty-state"><div class="es-icon">🔍</div><div class="es-title">Page not found</div></div>'; }))(c);
 }
 
-
 /* ════════════════════════════════════════
    ██████████ TEACHER DASHBOARD ██████████
    ════════════════════════════════════════ */
@@ -749,7 +748,6 @@ function pgAdminDash(el){
       </div>`).join('')}
   </div>`;
 }
-
 function openForgotPassword(){
   openModal(`
   <div class="modal-header">
@@ -856,6 +854,7 @@ function pgStudents(el){
   window.refreshStudentRows = renderRows;
   renderRows();
 }
+
 
 function openAddStudentModal(){
   openModal(`

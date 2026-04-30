@@ -290,6 +290,7 @@ tbody tr:hover td{background:var(--bg)}
   height: 100%;
   font-size: 0;
 }
+
 /* ═══ TOAST ═══ */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
 .toast{padding:12px 18px;border-radius:var(--r);font-size:13.5px;font-weight:500;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:toast-in .3s ease;display:flex;align-items:center;gap:10px}
@@ -323,6 +324,7 @@ tbody tr:hover td{background:var(--bg)}
 .empty-state .es-sub{font-size:13px}
 @media(max-width:900px){.app-body{flex-direction:column}.sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border)}.content{padding:16px}}
 
+/* ─── FIX 6: Admin dashboard clean UI ─── */
 .admin-quick-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -347,6 +349,8 @@ tbody tr:hover td{background:var(--bg)}
 .admin-quick-card .qc-label { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .admin-quick-card .qc-sub { font-size: 11.5px; color: var(--text3); }
 
+
+/* ─── FIX 2: Forgot password link ─── */
 .forgot-link {
   display: block;
   text-align: right;
