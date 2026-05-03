@@ -91,7 +91,7 @@ const STATE = {
   users: {
     teacher:{role:'teacher',id:'teacher',name:'Ms. Maria Santos',email:'teacher@smartgrade.edu',password:'password123',grade:'Grade 4',section:'Mabini',teacherId:'T001'},
     parent:{role:'parent',id:'P003',name:'Mr. Juan Dela Cruz',email:'parent@gmail.com',password:'password123',childIds:['S003'],childId:'S003'},
-    admin:{role:'admin',id:'admin',name:'Principal Roberto Cruz',email:'admin@smartgrade.edu',password:'password123',school:'Bagong Pag-asa Elementary School'},
+    admin:{role:'admin',id:'admin',name:'Principal Roberto Cruz',email:'admin@smartgrade.edu',password:'password123',school:'Polangui South Central School'},
   },
 
   subjects: ['math','science','english','filipino','ap'],
@@ -245,20 +245,47 @@ function setRole(role, btn){
   document.getElementById('l-email').value = emails[role];
 }
 
-function doLogin(){
+function doLogin() {
   const email = document.getElementById('l-email').value.trim();
   const pass  = document.getElementById('l-pass').value.trim();
-  const u = STATE.users[selRole];
-  if(!u || u.email!==email || u.password!==pass){
-    toast('Invalid email or password.','error'); return;
+
+  let foundUser = null;
+  let foundRole = null;
+
+  // 🔍 SEARCH ALL ROLES (IMPORTANT FIX)
+  for (const role in STATE.users) {
+    const user = STATE.users[role];
+
+    if (user.email === email && user.password === pass) {
+      foundUser = user;
+      foundRole = role;
+      break;
+    }
   }
-  STATE.currentUser = u;
-  document.getElementById('login-page').style.display='none';
-  document.getElementById('app').style.display='flex';
-  setTopbarAvatar(u);
-  document.getElementById('tb-name').textContent = u.name;
-  document.getElementById('tb-role').textContent = u.role.charAt(0).toUpperCase()+u.role.slice(1);
-  buildSidebar(u.role);
+
+  // ❌ INVALID LOGIN
+  if (!foundUser) {
+    toast('Invalid email or password.', 'error');
+    return;
+  }
+
+  // ✅ SAVE USER SESSION
+  STATE.currentUser = foundUser;
+  STATE.currentRole = foundRole;
+
+  // SWITCH UI
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  // TOPBAR
+  setTopbarAvatar(foundUser);
+  document.getElementById('tb-name').textContent = foundUser.name;
+  document.getElementById('tb-role').textContent =
+    foundRole.charAt(0).toUpperCase() + foundRole.slice(1);
+
+  // SIDEBAR BASED ON ROLE
+  buildSidebar(foundRole);
+
   updateUnreadBadge();
   nav('dashboard');
 }
@@ -266,20 +293,30 @@ function doLogin(){
 function doLogout(){
   STATE.currentUser = null;
   closeAllModals();
-  document.getElementById('app').style.display='none';
-  document.getElementById('login-page').style.display='grid';
-  setRole('teacher', document.querySelector('.role-btn'));
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'grid';
+  // Clear fields so next login starts fresh
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-pass').value  = '';
 }
+
 
 function togglePasswordVisibility(){
   const passInput = document.getElementById('l-pass');
   const toggleBtn = document.getElementById('pass-toggle');
   if(!passInput || !toggleBtn) return;
-  const isHidden = passInput.type === 'password';
-  passInput.type = isHidden ? 'text' : 'password';
-  toggleBtn.innerHTML = `<i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i>`;
-  toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+ 
+  if(passInput.type === 'password'){
+    passInput.type = 'text';
+    toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+    toggleBtn.setAttribute('aria-label', 'Hide password');
+  } else {
+    passInput.type = 'password';
+    toggleBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+    toggleBtn.setAttribute('aria-label', 'Show password');
+  }
 }
+ 
 
 /* ════════════════════════════════════════
    NAVIGATION
@@ -582,22 +619,16 @@ function pgParentDash(el){
    ██████████ ADMIN DASHBOARD ██████████
    ════════════════════════════════════════ */
 function pgAdminDash(el){
-  const u = STATE.currentUser;
-  const total   = STATE.students.length;
-  const active  = STATE.students.filter(s=>s.status==='active').length;
-  let allOv = [];
-  STATE.students.forEach(s=>{
-    const g = STATE.grades[s.id];
-    if(g){ const ov=Math.round(STATE.subjects.reduce((a,sub)=>a+avg(g[sub]),0)/STATE.subjects.length); allOv.push(ov); }
-  });
-  const schAvg     = allOv.length ? Math.round(allOv.reduce((a,b)=>a+b,0)/allOv.length) : 0;
-  const outstanding= allOv.filter(x=>x>=90).length;
-  const dnm        = allOv.filter(x=>x<75).length;
-  const unreadMsgs = STATE.messages.filter(m=>!m.read).length;
-  const today      = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const u=STATE.currentUser;
+  const total=STATE.students.length,active=STATE.students.filter(s=>s.status==='active').length;
+  let allOv=[];
+  STATE.students.forEach(s=>{const g=STATE.grades[s.id];if(g) allOv.push(Math.round(STATE.subjects.reduce((a,sub)=>a+avg(g[sub]),0)/STATE.subjects.length));});
+  const schAvg=allOv.length?Math.round(allOv.reduce((a,b)=>a+b,0)/allOv.length):0;
+  const outstanding=allOv.filter(x=>x>=90).length,dnm=allOv.filter(x=>x<75).length;
+  const unreadMsgs=STATE.messages.filter(m=>!m.read).length;
+  const today=new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  el.innerHTML = `
-  <!-- Hero -->
+  el.innerHTML=`
   <div class="dash-hero hero-green" style="margin-bottom:22px">
     <div style="position:absolute;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);top:-80px;right:-60px"></div>
     <div style="position:relative;z-index:1">
@@ -613,117 +644,65 @@ function pgAdminDash(el){
     </div>
   </div>
 
-  <!-- Stat cards -->
   <div class="stats-grid" style="margin-bottom:20px">
-    <div class="stat-card">
-      <div class="stat-lbl">Active Students</div>
-      <div class="stat-val green">${active}</div>
-      <div class="stat-foot">${total - active} inactive</div>
-      <div class="stat-bar"><div class="stat-bar-f" style="width:${total?active/total*100:0}%;background:var(--green)"></div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-lbl">School Average</div>
-      <div class="stat-val ${schAvg>=85?'green':schAvg>=75?'amber':'red'}">${schAvg}</div>
-      <div class="stat-foot">${glabel(schAvg)}</div>
-      <div class="stat-bar"><div class="stat-bar-f" style="width:${schAvg}%;background:${gcol(schAvg)}"></div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-lbl">Outstanding</div>
-      <div class="stat-val green">${outstanding}</div>
-      <div class="stat-foot">Students with avg ≥ 90</div>
-      <div class="stat-bar"><div class="stat-bar-f" style="width:${allOv.length?outstanding/allOv.length*100:0}%;background:var(--green)"></div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-lbl">Need Attention</div>
-      <div class="stat-val ${dnm>0?'red':'green'}">${dnm}</div>
-      <div class="stat-foot">Students below 75</div>
-      <div class="stat-bar"><div class="stat-bar-f" style="width:${allOv.length?dnm/allOv.length*100:0}%;background:var(--red)"></div></div>
-    </div>
+    <div class="stat-card"><div class="stat-lbl">Active Students</div><div class="stat-val green">${active}</div><div class="stat-foot">${total-active} inactive</div><div class="stat-bar"><div class="stat-bar-f" style="width:${total?active/total*100:0}%;background:var(--green)"></div></div></div>
+    <div class="stat-card"><div class="stat-lbl">School Average</div><div class="stat-val ${schAvg>=85?'green':schAvg>=75?'amber':'red'}">${schAvg}</div><div class="stat-foot">${glabel(schAvg)}</div><div class="stat-bar"><div class="stat-bar-f" style="width:${schAvg}%;background:${gcol(schAvg)}"></div></div></div>
+    <div class="stat-card"><div class="stat-lbl">Outstanding</div><div class="stat-val green">${outstanding}</div><div class="stat-foot">Average ≥ 90</div><div class="stat-bar"><div class="stat-bar-f" style="width:${allOv.length?outstanding/allOv.length*100:0}%;background:var(--green)"></div></div></div>
+    <div class="stat-card"><div class="stat-lbl">Need Attention</div><div class="stat-val ${dnm>0?'red':'green'}">${dnm}</div><div class="stat-foot">Below 75</div><div class="stat-bar"><div class="stat-bar-f" style="width:${allOv.length?dnm/allOv.length*100:0}%;background:var(--red)"></div></div></div>
   </div>
 
-  <!-- Quick Actions -->
   <div class="card mb-16">
     <div class="card-title">Quick Actions</div>
-    <div class="admin-quick-grid">
-      <div class="admin-quick-card" onclick="openAddStudentModal()">
-        <div class="qc-icon">👤</div>
-        <div class="qc-label">Add Student</div>
-        <div class="qc-sub">Enroll a new student</div>
-      </div>
-      <div class="admin-quick-card" onclick="openAddTeacherModal()">
-        <div class="qc-icon">👩‍🏫</div>
-        <div class="qc-label">Add Teacher</div>
-        <div class="qc-sub">Register a new teacher</div>
-      </div>
-      <div class="admin-quick-card" onclick="openAddAnnouncementModal()">
-        <div class="qc-icon">📢</div>
-        <div class="qc-label">Post Announcement</div>
-        <div class="qc-sub">Broadcast to everyone</div>
-      </div>
-      <div class="admin-quick-card" onclick="nav('reports')">
-        <div class="qc-icon">📊</div>
-        <div class="qc-label">View Reports</div>
-        <div class="qc-sub">Analytics &amp; exports</div>
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      ${[
+        {i:'👤',l:'Add Student',s:'Enroll a new student',f:'openAddStudentModal()'},
+        {i:'👩‍🏫',l:'Add Teacher',s:'Register a new teacher',f:'openAddTeacherModal()'},
+        {i:'📢',l:'Post Announcement',s:'Broadcast to everyone',f:'openAddAnnouncementModal()'},
+        {i:'📊',l:'View Reports',s:'Analytics & exports',f:"nav('reports')"},
+      ].map(c=>`<div onclick="${c.f}"
+        style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rl);padding:20px 16px;cursor:pointer;text-align:center;transition:all .18s"
+        onmouseover="this.style.borderColor='var(--green)';this.style.transform='translateY(-2px)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+        <div style="font-size:28px;margin-bottom:8px">${c.i}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">${c.l}</div>
+        <div style="font-size:11.5px;color:var(--text3)">${c.s}</div>
+      </div>`).join('')}
     </div>
   </div>
 
-  <!-- Recent students + classes side by side -->
   <div class="g2 mb-16">
     <div class="card">
-      <div class="card-header">
-        <div class="card-title" style="margin:0">Recent Students</div>
-        <button class="btn btn-secondary btn-xs" onclick="nav('students')">View All</button>
-      </div>
-      ${STATE.students.slice(0,5).map(s => {
-        const g  = STATE.grades[s.id];
-        const ov = g ? Math.round(STATE.subjects.reduce((a,sub)=>a+avg(g[sub]),0)/STATE.subjects.length) : 0;
+      <div class="card-header"><div class="card-title" style="margin:0">Recent Students</div><button class="btn btn-secondary btn-xs" onclick="nav('students')">View All</button></div>
+      ${STATE.students.slice(0,5).map(s=>{
+        const g=STATE.grades[s.id];
+        const ov=g?Math.round(STATE.subjects.reduce((a,sub)=>a+avg(g[sub]),0)/STATE.subjects.length):0;
         return `<div class="flex aic gap-10" style="padding:9px 0;border-bottom:1px solid var(--border)">
           <div class="av av-32 av-green">${ini(s.name)}</div>
-          <div class="f1">
-            <div class="fw6 ts">${s.name}</div>
-            <div class="txs tmm">${s.grade} – ${s.section}</div>
-          </div>
+          <div class="f1"><div class="fw6 ts">${s.name}</div><div class="txs tmm">${s.grade} – ${s.section}</div></div>
           <span class="badge ${gbadge(ov)}">${ov||'—'}</span>
           <span class="badge ${s.status==='active'?'bg-green':'bg-gray'}">${s.status}</span>
         </div>`;
       }).join('')}
     </div>
-
     <div style="display:flex;flex-direction:column;gap:14px">
-      <!-- Classes summary -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title" style="margin:0">Classes</div>
-          <button class="btn btn-secondary btn-xs" onclick="nav('classes')">Manage</button>
-        </div>
-        ${STATE.classes.map(c => {
-          const t   = STATE.teachers.find(x=>x.id===c.teacherId);
-          const sts = STATE.students.filter(s=>s.grade===c.grade&&s.section===c.section&&s.status==='active').length;
+        <div class="card-header"><div class="card-title" style="margin:0">Classes</div><button class="btn btn-secondary btn-xs" onclick="nav('classes')">Manage</button></div>
+        ${STATE.classes.map(c=>{
+          const t=STATE.teachers.find(x=>x.id===c.teacherId);
+          const sts=STATE.students.filter(s=>s.grade===c.grade&&s.section===c.section&&s.status==='active').length;
           return `<div class="flex aic gap-10" style="padding:8px 0;border-bottom:1px solid var(--border)">
             <div style="width:36px;height:36px;background:var(--blue-l);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px">🏫</div>
-            <div class="f1">
-              <div class="fw6 ts">${c.grade} – ${c.section}</div>
-              <div class="txs tmm">${t?t.name:'No teacher'}</div>
-            </div>
+            <div class="f1"><div class="fw6 ts">${c.grade} – ${c.section}</div><div class="txs tmm">${t?t.name:'No teacher'}</div></div>
             <span class="badge bg-blue">${sts} students</span>
           </div>`;
         }).join('')}
       </div>
-
-      <!-- Recent messages -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title" style="margin:0">Recent Messages</div>
-          ${unreadMsgs ? `<span class="badge bg-red">${unreadMsgs} new</span>` : ''}
-        </div>
-        ${STATE.messages.slice(0,3).map(m => `
+        <div class="card-header"><div class="card-title" style="margin:0">Recent Messages</div>${unreadMsgs?`<span class="badge bg-red">${unreadMsgs} new</span>`:''}</div>
+        ${STATE.messages.slice(0,3).map(m=>`
           <div class="flex aic gap-10" style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="nav('messages')">
             <div class="av av-32 av-blue">${ini(m.fromName)}</div>
-            <div class="f1">
-              <div class="fw6 ts">${m.fromName}</div>
-              <div class="txs tm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${m.subject}</div>
-            </div>
+            <div class="f1"><div class="fw6 ts">${m.fromName}</div><div class="txs tm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${m.subject}</div></div>
             ${!m.read?`<div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>`:''}
           </div>`).join('')}
         <button class="btn btn-secondary btn-sm mt-12" style="width:100%" onclick="nav('messages')">Open Inbox</button>
@@ -731,125 +710,114 @@ function pgAdminDash(el){
     </div>
   </div>
 
-  <!-- Announcements -->
   <div class="card">
-    <div class="card-header">
-      <div class="card-title" style="margin:0">Latest Announcements</div>
-      <button class="btn btn-secondary btn-xs" onclick="nav('announcements')">See All</button>
-    </div>
-    ${STATE.announcements.slice(0,2).map(a => `
+    <div class="card-header"><div class="card-title" style="margin:0">Latest Announcements</div><button class="btn btn-secondary btn-xs" onclick="nav('announcements')">See All</button></div>
+    ${STATE.announcements.slice(0,2).map(a=>`
       <div style="padding:12px 0;border-bottom:1px solid var(--border)">
-        <div class="flex aic gap-8 mb-6">
-          <span class="badge ${a.priority==='high'?'bg-red':'bg-gray'}">${a.priority==='high'?'Important':'Notice'}</span>
-          <span class="txs tmm">${a.date}</span>
-        </div>
+        <div class="flex aic gap-8 mb-6"><span class="badge ${a.priority==='high'?'bg-red':'bg-gray'}">${a.priority==='high'?'Important':'Notice'}</span><span class="txs tmm">${a.date}</span></div>
         <div class="fw6 ts">${a.title}</div>
         <div class="txs tm mt-6" style="line-height:1.5">${a.body.slice(0,100)}…</div>
       </div>`).join('')}
   </div>`;
 }
 function openForgotPassword(){
-  openModal(`
-  <div class="modal-header">
-    <div class="modal-title">Forgot Password</div>
-    <button class="modal-close" onclick="closeModal()">✕</button>
-  </div>
-  <div class="modal-body">
-    <p class="ts tm" style="margin-bottom:14px;line-height:1.7">
-      Enter your registered email address and we'll send you a password reset link.
-    </p>
-    <div class="fg">
-      <label>Email Address*</label>
-      <input id="fp-email" type="email" placeholder="your@email.com">
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="submitForgotPassword()">Send Reset Link</button>
-  </div>`);
+  document.getElementById('forgot-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'forgot-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:400px;padding:32px;box-shadow:0 24px 60px rgba(0,0,0,.2)">
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px;color:#18180E">Forgot Password?</div>
+      <div style="font-size:13px;color:#5C5A52;margin-bottom:20px;line-height:1.6">Enter your registered email and we'll send you a reset link.</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:18px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#5C5A52">Email Address*</label>
+        <input id="fp-email" type="email" placeholder="your@email.com"
+          style="padding:10px 12px;border:1.5px solid #E3E0D8;border-radius:9px;font-size:13.5px;outline:none;font-family:inherit">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('forgot-overlay').remove()"
+          style="padding:9px 18px;border-radius:9px;border:1.5px solid #E3E0D8;background:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">
+          Cancel
+        </button>
+        <button onclick="submitForgotPassword()"
+          style="padding:9px 18px;border-radius:9px;border:none;background:#2A76C9;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">
+          Send Reset Link
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target===ov) ov.remove(); });
+  setTimeout(() => document.getElementById('fp-email')?.focus(), 50);
 }
 
 function submitForgotPassword(){
   const email = document.getElementById('fp-email')?.value.trim();
-  if(!email){ toast('Please enter your email address.','error'); return; }
-  closeModal();
-  toast(`Password reset link sent to ${email}!`);
+  if(!email){
+    const inp = document.getElementById('fp-email');
+    if(inp) inp.style.border = '1.5px solid #B52B2B';
+    return;
+  }
+  const found = Object.values(STATE.users).find(u => u.email === email);
+  document.getElementById('forgot-overlay')?.remove();
+  // Use a self-contained toast that works even before app loads
+  const tc = document.getElementById('toast-container') || (() => {
+    const el = document.createElement('div');
+    el.id = 'toast-container';
+    el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px';
+    document.body.appendChild(el);
+    return el;
+  })();
+  const t = document.createElement('div');
+  t.className = found ? 'toast toast-success' : 'toast toast-error';
+  t.textContent = found ? `✓ Reset link sent to ${email}!` : `No account found for ${email}.`;
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
 }
  
 /* ─── 1. STUDENTS PAGE (Teacher & Admin) ─── */
 function pgStudents(el){
   const isAdmin = STATE.currentUser.role === 'admin';
-
   el.innerHTML = `
     <div class="page-head">
-      <div>
-        <div class="page-title">${isAdmin ? 'All Students' : 'My Students'}</div>
-        <div class="page-sub" id="stud-sub"></div>
-      </div>
+      <div><div class="page-title">${isAdmin?'All Students':'My Students'}</div><div class="page-sub" id="stud-sub"></div></div>
       <div class="page-actions">
-        ${isAdmin ? `<button class="btn btn-primary" onclick="openAddStudentModal()">${svgIco.people} Add Student</button>` : ''}
+        ${isAdmin?`<button class="btn btn-primary" onclick="openAddStudentModal()">${svgIco.people} Add Student`:''}
+        ${isAdmin?`</button>`:''}
       </div>
     </div>
     <div class="tbl-wrap">
       <div class="tbl-toolbar">
         <input id="stud-search" class="tbl-search" placeholder="🔍  Search by name, ID, grade or section...">
-        ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="exportStudents()">Export</button>` : ''}
+        ${isAdmin?`<button class="btn btn-secondary btn-sm" onclick="exportStudents()">Export</button>`:''}
       </div>
       <table>
-        <thead>
-          <tr>
-            <th>Student</th><th>Grade &amp; Section</th><th>Gender</th>
-            <th>Parent/Guardian</th><th>Contact</th><th>Status</th><th>Actions</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Student</th><th>Grade &amp; Section</th><th>Gender</th><th>Parent/Guardian</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="stud-tbody"></tbody>
       </table>
     </div>`;
 
   function getBase(){
-    return isAdmin
-      ? STATE.students
-      : STATE.students.filter(s =>
-          s.section === STATE.currentUser.section &&
-          s.grade   === STATE.currentUser.grade);
+    return isAdmin ? STATE.students
+      : STATE.students.filter(s => s.section===STATE.currentUser.section && s.grade===STATE.currentUser.grade);
   }
-
   function renderRows(){
     const q = document.getElementById('stud-search').value.toLowerCase();
-    const students = getBase().filter(s =>
-      !q ||
-      s.name.toLowerCase().includes(q)    ||
-      s.id.toLowerCase().includes(q)      ||
-      s.section.toLowerCase().includes(q) ||
-      s.grade.toLowerCase().includes(q)
-    );
+    const students = getBase().filter(s => !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.section.toLowerCase().includes(q) || s.grade.toLowerCase().includes(q));
     document.getElementById('stud-sub').textContent = `${students.length} student(s) found`;
-    document.getElementById('stud-tbody').innerHTML = students.length === 0
-      ? `<tr><td colspan="7"><div class="empty-state">
-           <div class="es-icon">👥</div>
-           <div class="es-title">No students found</div>
-           <div class="es-sub">Try adjusting your search</div>
-         </div></td></tr>`
-      : students.map(s => `<tr>
-          <td><div class="flex aic gap-10">
-            <div class="av av-32 av-green">${ini(s.name)}</div>
-            <div><div class="fw6">${s.name}</div><div class="txs tmm">${s.id}</div></div>
-          </div></td>
-          <td>${s.grade} – ${s.section}</td>
-          <td>${s.gender === 'F' ? 'Female' : 'Male'}</td>
+    document.getElementById('stud-tbody').innerHTML = students.length===0
+      ? `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">👥</div><div class="es-title">No students found</div><div class="es-sub">Try adjusting your search</div></div></td></tr>`
+      : students.map(s=>`<tr>
+          <td><div class="flex aic gap-10"><div class="av av-32 av-green">${ini(s.name)}</div><div><div class="fw6">${s.name}</div><div class="txs tmm">${s.id}</div></div></div></td>
+          <td>${s.grade} – ${s.section}</td><td>${s.gender==='F'?'Female':'Male'}</td>
           <td><div>${s.parent}</div><div class="txs tmm">${s.parentEmail}</div></td>
           <td>${s.contact}</td>
           <td><span class="badge ${s.status==='active'?'bg-green':'bg-gray'}">${s.status}</span></td>
           <td><div class="flex gap-6">
             <button class="btn btn-secondary btn-xs" onclick="viewStudentModal('${s.id}')">View</button>
-            ${isAdmin ? `
-              <button class="btn btn-secondary btn-xs" onclick="openEditStudentModal('${s.id}')">Edit</button>
-              <button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')">Delete</button>
-            ` : ''}
+            ${isAdmin?`<button class="btn btn-secondary btn-xs" onclick="openEditStudentModal('${s.id}')">Edit</button><button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')">Delete</button>`:''}
           </div></td>
         </tr>`).join('');
   }
-
   document.getElementById('stud-search').addEventListener('input', renderRows);
   window.refreshStudentRows = renderRows;
   renderRows();
@@ -986,83 +954,27 @@ function exportStudents(){
    TEACHERS PAGE (Admin)
    ════════════════════════════════════════ */
 function pgTeachers(el){
-  let search='';
-  function render(){
-    const list = STATE.teachers.filter(t=>!search||t.name.toLowerCase().includes(search)||t.email.toLowerCase().includes(search)||t.section.toLowerCase().includes(search));
-    el.innerHTML=`
-    <div class="page-head">
-      <div><div class="page-title">Teachers</div><div class="page-sub">${list.length} teacher(s)</div></div>
-      <div class="page-actions"><button class="btn btn-primary" onclick="openAddTeacherModal()">${svgIco.person} Add Teacher</button></div>
-    </div>
-    <div class="tbl-wrap">
-      <div class="tbl-toolbar">
-        <input class="tbl-search" placeholder="🔍  Search teachers..." value="${search}" oninput="window._tSearch=this.value;renderTeachers()">
-      </div>
-      <table>
-        <thead><tr><th>Teacher</th><th>Grade / Section</th><th>Email</th><th>Phone</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${list.length===0?`<tr><td colspan="7"><div class="empty-state"><div class="es-icon">👩‍🏫</div><div class="es-title">No teachers found</div></div></td></tr>`:
-            list.map(t=>`<tr>
-              <td><div class="flex aic gap-10"><div class="av av-32 av-blue">${ini(t.name)}</div><div><div class="fw6">${t.name}</div><div class="txs tmm">${t.id}</div></div></div></td>
-              <td>${t.grade} – ${t.section}</td>
-              <td class="tm">${t.email}</td>
-              <td>${t.phone}</td>
-              <td>${t.joined}</td>
-              <td><span class="badge ${t.status==='active'?'bg-green':'bg-gray'}">${t.status}</span></td>
-              <td><div class="flex gap-6">
-                <button class="btn btn-secondary btn-xs" onclick="openEditTeacherModal('${t.id}')">Edit</button>
-                <button class="btn btn-danger btn-xs" onclick="deleteTeacher('${t.id}','${t.name}')">Delete</button>
-              </div></td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-    window._tSearch=search;
-    window.renderTeachers=()=>{search=window._tSearch||'';render();};
-  }
-  window.renderTeachers=()=>{search=window._tSearch||'';render();};
-  render();
-}
-
-function pgTeachers(el){
   el.innerHTML = `
     <div class="page-head">
       <div><div class="page-title">Teachers</div><div class="page-sub" id="teach-sub"></div></div>
-      <div class="page-actions">
-        <button class="btn btn-primary" onclick="openAddTeacherModal()">${svgIco.person} Add Teacher</button>
-      </div>
+      <div class="page-actions"><button class="btn btn-primary" onclick="openAddTeacherModal()">${svgIco.person} Add Teacher</button></div>
     </div>
     <div class="tbl-wrap">
-      <div class="tbl-toolbar">
-        <input id="teach-search" class="tbl-search" placeholder="🔍  Search teachers...">
-      </div>
+      <div class="tbl-toolbar"><input id="teach-search" class="tbl-search" placeholder="🔍  Search teachers..."></div>
       <table>
-        <thead><tr>
-          <th>Teacher</th><th>Grade / Section</th><th>Email</th>
-          <th>Phone</th><th>Joined</th><th>Status</th><th>Actions</th>
-        </tr></thead>
+        <thead><tr><th>Teacher</th><th>Grade / Section</th><th>Email</th><th>Phone</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="teach-tbody"></tbody>
       </table>
     </div>`;
- 
   function renderRows(){
     const q = document.getElementById('teach-search').value.toLowerCase();
-    const list = STATE.teachers.filter(t =>
-      !q ||
-      t.name.toLowerCase().includes(q)    ||
-      t.email.toLowerCase().includes(q)   ||
-      t.section.toLowerCase().includes(q)
-    );
+    const list = STATE.teachers.filter(t => !q || t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q) || t.section.toLowerCase().includes(q));
     document.getElementById('teach-sub').textContent = `${list.length} teacher(s)`;
-    document.getElementById('teach-tbody').innerHTML = list.length === 0
+    document.getElementById('teach-tbody').innerHTML = list.length===0
       ? `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">👩‍🏫</div><div class="es-title">No teachers found</div></div></td></tr>`
-      : list.map(t => `<tr>
-          <td><div class="flex aic gap-10"><div class="av av-32 av-blue">${ini(t.name)}</div>
-            <div><div class="fw6">${t.name}</div><div class="txs tmm">${t.id}</div></div></div></td>
-          <td>${t.grade} – ${t.section}</td>
-          <td class="tm">${t.email}</td>
-          <td>${t.phone}</td>
-          <td>${t.joined}</td>
+      : list.map(t=>`<tr>
+          <td><div class="flex aic gap-10"><div class="av av-32 av-blue">${ini(t.name)}</div><div><div class="fw6">${t.name}</div><div class="txs tmm">${t.id}</div></div></div></td>
+          <td>${t.grade} – ${t.section}</td><td class="tm">${t.email}</td><td>${t.phone}</td><td>${t.joined}</td>
           <td><span class="badge ${t.status==='active'?'bg-green':'bg-gray'}">${t.status}</span></td>
           <td><div class="flex gap-6">
             <button class="btn btn-secondary btn-xs" onclick="openEditTeacherModal('${t.id}')">Edit</button>
@@ -1070,7 +982,6 @@ function pgTeachers(el){
           </div></td>
         </tr>`).join('');
   }
- 
   document.getElementById('teach-search').addEventListener('input', renderRows);
   window.refreshTeacherRows = renderRows;
   renderRows();
@@ -1166,65 +1077,40 @@ function deleteTeacher(id,name){
    - Teacher: sees only parents of students in their class, view only
    ════════════════════════════════════════ */
 function pgParents(el){
-  const isAdmin = STATE.currentUser.role === 'admin';
- 
+  const isAdmin = STATE.currentUser.role==='admin';
   function getBase(){
     if(isAdmin) return STATE.parents;
-    // Teacher: only parents whose children are in the teacher's class
-    const myStudentIds = STATE.students
-      .filter(s => s.section === STATE.currentUser.section && s.grade === STATE.currentUser.grade)
-      .map(s => s.id);
-    return STATE.parents.filter(p => p.children.some(cid => myStudentIds.includes(cid)));
+    const myIds = STATE.students.filter(s=>s.section===STATE.currentUser.section&&s.grade===STATE.currentUser.grade).map(s=>s.id);
+    return STATE.parents.filter(p=>p.children.some(cid=>myIds.includes(cid)));
   }
- 
   el.innerHTML = `
     <div class="page-head">
-      <div>
-        <div class="page-title">Parents</div>
-        <div class="page-sub" id="par-sub"></div>
-      </div>
-      <div class="page-actions">
-        ${isAdmin ? `<button class="btn btn-primary" onclick="openAddParentModal()">+ Add Parent</button>` : ''}
-      </div>
+      <div><div class="page-title">Parents</div><div class="page-sub" id="par-sub"></div></div>
+      <div class="page-actions">${isAdmin?`<button class="btn btn-primary" onclick="openAddParentModal()">+ Add Parent</button>`:''}</div>
     </div>
     <div class="tbl-wrap">
-      <div class="tbl-toolbar">
-        <input id="par-search" class="tbl-search" placeholder="🔍  Search parents...">
-      </div>
+      <div class="tbl-toolbar"><input id="par-search" class="tbl-search" placeholder="🔍  Search parents..."></div>
       <table>
-        <thead><tr>
-          <th>Parent</th><th>Email</th><th>Phone</th><th>Children</th>
-          ${isAdmin ? '<th>Actions</th>' : ''}
-        </tr></thead>
+        <thead><tr><th>Parent</th><th>Email</th><th>Phone</th><th>Children</th>${isAdmin?'<th>Actions</th>':''}</tr></thead>
         <tbody id="par-tbody"></tbody>
       </table>
     </div>`;
- 
   function renderRows(){
     const q = document.getElementById('par-search').value.toLowerCase();
-    const list = getBase().filter(p =>
-      !q ||
-      p.name.toLowerCase().includes(q)  ||
-      p.email.toLowerCase().includes(q) ||
-      p.phone.includes(q)
-    );
-    document.getElementById('par-sub').textContent =
-      `${list.length} parent(s) ${isAdmin ? 'in the system' : 'in your class'}`;
-    document.getElementById('par-tbody').innerHTML = list.length === 0
+    const list = getBase().filter(p => !q || p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.phone.includes(q));
+    document.getElementById('par-sub').textContent = `${list.length} parent(s) ${isAdmin?'in the system':'in your class'}`;
+    document.getElementById('par-tbody').innerHTML = list.length===0
       ? `<tr><td colspan="${isAdmin?5:4}"><div class="empty-state"><div class="es-icon">👨‍👩‍👧</div><div class="es-title">No parents found</div></div></td></tr>`
-      : list.map(p => `<tr>
-          <td><div class="flex aic gap-10"><div class="av av-32 av-amber">${ini(p.name)}</div>
-            <div><div class="fw6">${p.name}</div><div class="txs tmm">${p.id}</div></div></div></td>
-          <td>${p.email}</td>
-          <td>${p.phone}</td>
+      : list.map(p=>`<tr>
+          <td><div class="flex aic gap-10"><div class="av av-32 av-amber">${ini(p.name)}</div><div><div class="fw6">${p.name}</div><div class="txs tmm">${p.id}</div></div></div></td>
+          <td>${p.email}</td><td>${p.phone}</td>
           <td>${p.children.map(cid=>STATE.students.find(s=>s.id===cid)?.name||cid).join(', ')}</td>
-          ${isAdmin ? `<td><div class="flex gap-6">
+          ${isAdmin?`<td><div class="flex gap-6">
             <button class="btn btn-secondary btn-xs" onclick="openEditParentModal('${p.id}')">Edit</button>
             <button class="btn btn-danger btn-xs" onclick="deleteParent('${p.id}','${p.name.replace(/'/g,"\\'")}')">Delete</button>
-          </div></td>` : ''}
+          </div></td>`:''}
         </tr>`).join('');
   }
- 
   document.getElementById('par-search').addEventListener('input', renderRows);
   window.refreshParentRows = renderRows;
   renderRows();
@@ -1412,110 +1298,47 @@ function deleteClass(id,name){
    - Parent:  read-only view of their child
    ════════════════════════════════════════ */
 function pgGrades(el){
-  const role     = STATE.currentUser.role;
-  const isParent = role === 'parent';
-  const isAdmin  = role === 'admin';
-  const isTeacher= role === 'teacher';
-  let activeQ = 0;
-  let changed = {};
-
+  const role=STATE.currentUser.role,isParent=role==='parent',isAdmin=role==='admin',isTeacher=role==='teacher';
+  let activeQ=0,changed={};
   function getStudents(){
-    if(isParent)  return STATE.students.filter(s => s.id === STATE.currentUser.childId);
-    if(isAdmin)   return STATE.students.filter(s => STATE.grades[s.id]);
-    return STATE.students.filter(s =>
-      s.section === STATE.currentUser.section &&
-      s.grade   === STATE.currentUser.grade   &&
-      s.status  === 'active');
+    if(isParent) return STATE.students.filter(s=>s.id===STATE.currentUser.childId);
+    if(isAdmin)  return STATE.students.filter(s=>STATE.grades[s.id]);
+    return STATE.students.filter(s=>s.section===STATE.currentUser.section&&s.grade===STATE.currentUser.grade&&s.status==='active');
   }
-
   function render(){
-    const students = getStudents();
-    el.innerHTML = `
+    const students=getStudents();
+    el.innerHTML=`
     <div class="page-head">
-      <div>
-        <div class="page-title">${isParent ? 'Academic Record' : isAdmin ? 'Grade Overview' : 'Grade Entry'}</div>
-        <div class="page-sub">${isParent ? STATE.currentUser.childId : isAdmin ? 'All sections' : 'Enter and save student grades'}</div>
-      </div>
-      ${isTeacher ? `
-        <div class="page-actions">
-          <button class="btn btn-secondary" onclick="resetGrades()">Reset</button>
-          <button class="btn btn-primary" onclick="saveGrades()">💾 Save Grades</button>
-        </div>` : ''}
+      <div><div class="page-title">${isParent?'Academic Record':isAdmin?'Grade Overview':'Grade Entry'}</div>
+      <div class="page-sub">${isParent?STATE.currentUser.childId:isAdmin?'All sections':'Enter and save student grades'}</div></div>
+      ${isTeacher?`<div class="page-actions"><button class="btn btn-secondary" onclick="resetGrades()">Reset</button><button class="btn btn-primary" onclick="saveGrades()">💾 Save Grades</button></div>`:''}
     </div>
-    <div class="tab-bar">
-      ${STATE.quarters.map((q,i) => `<button class="tab-btn ${i===activeQ?'active':''}" data-qi="${i}">${q}</button>`).join('')}
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Student</th>
-            ${activeQ===4
-              ? STATE.quarters.slice(0,4).map(q=>`<th>${q}</th>`).join('')
-              : STATE.subjects.map(s=>`<th>${STATE.subjectLabels[s]}</th>`).join('')}
-            <th>Average</th><th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${students.map(s => {
-            const g = STATE.grades[s.id] || {};
-            const showFinal = activeQ === 4;
-            const scores = showFinal
-              ? STATE.quarters.slice(0,4).map((_,qi)=>{
-                  const vals=STATE.subjects.map(sub=>g[sub]?g[sub][qi]:0);
-                  return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;
-                })
-              : STATE.subjects.map(sub=>g[sub]?g[sub][activeQ]:0);
-            const ov = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
-            return `<tr>
-              <td><div class="flex aic gap-8">
-                <div class="av av-32 av-green">${ini(s.name)}</div>
-                <div><div class="fw6">${s.name}</div><div class="txs tmm">${s.grade} – ${s.section}</div></div>
-              </div></td>
-              ${scores.map((sc,i) => {
-                if(showFinal || isParent || isAdmin)
-                  return `<td><span class="badge ${gbadge(sc)}">${sc}</span></td>`;
-                const sub = STATE.subjects[i];
-                const key = `${s.id}-${sub}-${activeQ}`;
-                return `<td><input class="grade-cell ${changed[key]?'changed':''}" type="number" min="0" max="100" value="${sc}"
-                  data-sid="${s.id}" data-sub="${sub}" data-qi="${activeQ}"
-                  onchange="onGradeChange(this,'${key}')"></td>`;
-              }).join('')}
-              <td><strong style="color:${gcol(ov)}">${ov}</strong></td>
-              <td><span class="badge ${gbadge(ov)}">${glabel(ov)}</span></td>
-            </tr>`;
+    <div class="tab-bar">${STATE.quarters.map((q,i)=>`<button class="tab-btn ${i===activeQ?'active':''}" data-qi="${i}">${q}</button>`).join('')}</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Student</th>${activeQ===4?STATE.quarters.slice(0,4).map(q=>`<th>${q}</th>`).join(''):STATE.subjects.map(s=>`<th>${STATE.subjectLabels[s]}</th>`).join('')}<th>Average</th><th>Remarks</th></tr></thead>
+      <tbody>${students.map(s=>{
+        const g=STATE.grades[s.id]||{},showFinal=activeQ===4;
+        const scores=showFinal?STATE.quarters.slice(0,4).map((_,qi)=>{const v=STATE.subjects.map(sub=>g[sub]?g[sub][qi]:0);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):0;}):STATE.subjects.map(sub=>g[sub]?g[sub][activeQ]:0);
+        const ov=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+        return `<tr>
+          <td><div class="flex aic gap-8"><div class="av av-32 av-green">${ini(s.name)}</div><div><div class="fw6">${s.name}</div><div class="txs tmm">${s.grade} – ${s.section}</div></div></div></td>
+          ${scores.map((sc,i)=>{
+            if(showFinal||isParent||isAdmin) return `<td><span class="badge ${gbadge(sc)}">${sc}</span></td>`;
+            const sub=STATE.subjects[i],key=`${s.id}-${sub}-${activeQ}`;
+            return `<td><input class="grade-cell ${changed[key]?'changed':''}" type="number" min="0" max="100" value="${sc}" data-sid="${s.id}" data-sub="${sub}" data-qi="${activeQ}" onchange="onGradeChange(this,'${key}')"></td>`;
           }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-
-    el.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.onclick = () => { activeQ=parseInt(btn.dataset.qi); changed={}; render(); };
-    });
+          <td><strong style="color:${gcol(ov)}">${ov}</strong></td>
+          <td><span class="badge ${gbadge(ov)}">${glabel(ov)}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+    el.querySelectorAll('.tab-btn').forEach(btn=>{btn.onclick=()=>{activeQ=parseInt(btn.dataset.qi);changed={};render();};});
   }
-
-  window.onGradeChange = (inp,key) => {
-    let v=parseInt(inp.value)||0; if(v<0)v=0; if(v>100)v=100; inp.value=v;
-    const sid=inp.dataset.sid,sub=inp.dataset.sub,qi=parseInt(inp.dataset.qi);
-    if(!STATE.grades[sid]) STATE.grades[sid]={};
-    if(!STATE.grades[sid][sub]) STATE.grades[sid][sub]=[0,0,0,0];
-    STATE.grades[sid][sub][qi]=v; changed[key]=true; inp.classList.add('changed');
-  };
-  window.saveGrades  = () => { changed={}; toast('Grades saved successfully!'); render(); };
-  window.resetGrades = () => {
-    getStudents().forEach(s=>{
-      if(!STATE.grades[s.id]) STATE.grades[s.id]={};
-      STATE.subjects.forEach(sub=>{
-        if(!STATE.grades[s.id][sub]) STATE.grades[s.id][sub]=[0,0,0,0];
-        if(activeQ===4) STATE.grades[s.id][sub]=[0,0,0,0];
-        else STATE.grades[s.id][sub][activeQ]=0;
-      });
-    });
-    changed={}; render(); toast('Grades reset to zero.','info');
-  };
+  window.onGradeChange=(inp,key)=>{let v=parseInt(inp.value)||0;if(v<0)v=0;if(v>100)v=100;inp.value=v;const sid=inp.dataset.sid,sub=inp.dataset.sub,qi=parseInt(inp.dataset.qi);if(!STATE.grades[sid])STATE.grades[sid]={};if(!STATE.grades[sid][sub])STATE.grades[sid][sub]=[0,0,0,0];STATE.grades[sid][sub][qi]=v;changed[key]=true;inp.classList.add('changed');};
+  window.saveGrades=()=>{changed={};toast('Grades saved!');render();};
+  window.resetGrades=()=>{getStudents().forEach(s=>{if(!STATE.grades[s.id])STATE.grades[s.id]={};STATE.subjects.forEach(sub=>{if(!STATE.grades[s.id][sub])STATE.grades[s.id][sub]=[0,0,0,0];if(activeQ===4)STATE.grades[s.id][sub]=[0,0,0,0];else STATE.grades[s.id][sub][activeQ]=0;});});changed={};render();toast('Grades reset.','info');};
   render();
 }
-
 
 /* ════════════════════════════════════════
    ATTENDANCE PAGE
@@ -1524,96 +1347,52 @@ function pgGrades(el){
    - Parent:  read-only view of their child
    ════════════════════════════════════════ */
 function pgAttendance(el){
-  const role     = STATE.currentUser.role;
-  const isParent = role === 'parent';
-  const isAdmin  = role === 'admin';
-  const isTeacher= role === 'teacher';
-  const calTypes = ['att-h','att-h','att-p','att-p','att-p','att-a','att-p','att-l','att-p','att-p','att-p','att-h','att-h','att-p','att-p','att-p','att-p','att-a','att-p','att-p','att-p','att-h','att-h','att-p','att-p','att-p','att-l','att-p','att-h','att-h','att-p'];
-  const todayDate = new Date().toISOString().split('T')[0];
-  let selDate = todayDate;
-  let todayRecords = {};
-
+  const role=STATE.currentUser.role,isParent=role==='parent',isAdmin=role==='admin',isTeacher=role==='teacher';
+  const calTypes=['att-h','att-h','att-p','att-p','att-p','att-a','att-p','att-l','att-p','att-p','att-p','att-h','att-h','att-p','att-p','att-p','att-p','att-a','att-p','att-p','att-p','att-h','att-h','att-p','att-p','att-p','att-l','att-p','att-h','att-h','att-p'];
+  let selDate=new Date().toISOString().split('T')[0],todayRecords={};
   function getStudents(){
     if(isParent) return STATE.students.filter(s=>s.id===STATE.currentUser.childId);
     if(isAdmin)  return STATE.students.filter(s=>STATE.attendance[s.id]);
-    return STATE.students.filter(s=>
-      s.section===STATE.currentUser.section &&
-      s.grade===STATE.currentUser.grade     &&
-      s.status==='active');
+    return STATE.students.filter(s=>s.section===STATE.currentUser.section&&s.grade===STATE.currentUser.grade&&s.status==='active');
   }
-
   function render(){
-    const students = getStudents();
-    el.innerHTML = `
+    const students=getStudents();
+    el.innerHTML=`
     <div class="page-head">
-      <div>
-        <div class="page-title">Attendance ${isParent?'Record':isAdmin?'Overview':'Tracking'}</div>
-        <div class="page-sub">${isParent?STATE.currentUser.childId:isAdmin?'All sections':'Mark and monitor daily student attendance'}</div>
-      </div>
+      <div><div class="page-title">Attendance ${isParent?'Record':isAdmin?'Overview':'Tracking'}</div>
+      <div class="page-sub">${isParent?STATE.currentUser.childId:isAdmin?'All sections':'Mark and monitor daily attendance'}</div></div>
       ${isTeacher?`<button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>`:''}
     </div>
-
-    ${isTeacher?`
-    <div class="card mb-16"><div class="flex aic gap-14">
-      <div class="flex aic gap-10">
-        <label class="txs tmm fw7">DATE:</label>
-        <input type="date" value="${selDate}" id="att-date"
-          style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;outline:none"
-          onchange="setAttendanceDate(this.value)">
+    ${isTeacher?`<div class="card mb-16"><div class="flex aic gap-14">
+      <div class="flex aic gap-10"><label class="txs tmm fw7">DATE:</label>
+        <input type="date" value="${selDate}" id="att-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;outline:none" onchange="setAttendanceDate(this.value)">
       </div>
-      <div class="flex gap-8">
-        <span class="badge bg-green">P = Present</span>
-        <span class="badge bg-red">A = Absent</span>
-        <span class="badge bg-amber">L = Late</span>
-      </div>
+      <div class="flex gap-8"><span class="badge bg-green">P = Present</span><span class="badge bg-red">A = Absent</span><span class="badge bg-amber">L = Late</span></div>
     </div></div>`:''}
-
     <div class="${isParent?'g2':''}">
-      <div class="tbl-wrap ${isParent?'':'mb-16'}">
-        <table>
-          <thead><tr>
-            <th>Student</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th>
-            ${isTeacher?`<th>Today's Status</th>`:''}
-          </tr></thead>
-          <tbody>
-            ${students.map(s=>{
-              const a=STATE.attendance[s.id]||{present:0,absent:0,late:0,total:45};
-              const rate=a.total?Math.round(a.present/a.total*100):0;
-              const cur=todayRecords[s.id]||'Present';
-              return `<tr>
-                <td><div class="flex aic gap-8">
-                  <div class="av av-32 av-green">${ini(s.name)}</div>
-                  <div><div class="fw6">${s.name}</div><div class="txs tmm">${s.grade} – ${s.section}</div></div>
-                </div></td>
-                <td><span class="badge bg-green">${a.present}</span></td>
-                <td><span class="badge bg-red">${a.absent}</span></td>
-                <td><span class="badge bg-amber">${a.late}</span></td>
-                <td><div class="flex aic gap-8">
-                  <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px">
-                    <div style="height:100%;width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'};border-radius:3px"></div>
-                  </div>
-                  <span class="txs fw6" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'};min-width:30px">${rate}%</span>
-                </div></td>
-                ${isTeacher?`<td>
-                  <select style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none"
-                    data-sid="${s.id}" onchange="onAttendanceChange(this)">
-                    <option ${cur==='Present'?'selected':''}>Present</option>
-                    <option ${cur==='Absent'?'selected':''}>Absent</option>
-                    <option ${cur==='Late'?'selected':''}>Late</option>
-                  </select>
-                </td>`:''}
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-
+      <div class="tbl-wrap ${isParent?'':'mb-16'}"><table>
+        <thead><tr><th>Student</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th>${isTeacher?`<th>Today's Status</th>`:''}</tr></thead>
+        <tbody>${students.map(s=>{
+          const a=STATE.attendance[s.id]||{present:0,absent:0,late:0,total:45};
+          const rate=a.total?Math.round(a.present/a.total*100):0;
+          const cur=todayRecords[s.id]||'Present';
+          return `<tr>
+            <td><div class="flex aic gap-8"><div class="av av-32 av-green">${ini(s.name)}</div><div><div class="fw6">${s.name}</div><div class="txs tmm">${s.grade} – ${s.section}</div></div></div></td>
+            <td><span class="badge bg-green">${a.present}</span></td>
+            <td><span class="badge bg-red">${a.absent}</span></td>
+            <td><span class="badge bg-amber">${a.late}</span></td>
+            <td><div class="flex aic gap-8"><div style="flex:1;height:5px;background:var(--surface2);border-radius:3px"><div style="height:100%;width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'};border-radius:3px"></div></div><span class="txs fw6" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'};min-width:30px">${rate}%</span></div></td>
+            ${isTeacher?`<td><select style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none" data-sid="${s.id}" onchange="onAttendanceChange(this)">
+              <option ${cur==='Present'?'selected':''}>Present</option>
+              <option ${cur==='Absent'?'selected':''}>Absent</option>
+              <option ${cur==='Late'?'selected':''}>Late</option>
+            </select></td>`:''}
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
       ${isParent?`<div class="card">
         <div class="card-title">Attendance Calendar – January 2025</div>
-        <div class="att-cal">
-          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="att-cal-hdr">${d}</div>`).join('')}
-          ${Array.from({length:31},(_,i)=>`<div class="att-cal-cell ${calTypes[i]}">${i+1}</div>`).join('')}
-        </div>
+        <div class="att-cal">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="att-cal-hdr">${d}</div>`).join('')}${Array.from({length:31},(_,i)=>`<div class="att-cal-cell ${calTypes[i]}">${i+1}</div>`).join('')}</div>
         <div class="att-legend">
           <div class="att-leg-item"><div class="att-leg-dot" style="background:var(--blue-l)"></div>Present</div>
           <div class="att-leg-item"><div class="att-leg-dot" style="background:#FDECEC"></div>Absent</div>
@@ -1622,38 +1401,14 @@ function pgAttendance(el){
         </div>
       </div>`:''}
     </div>
-
-    ${!isParent?`<div class="card mt-16">
-      <div class="card-title">Attendance Rate Summary</div>
-      ${students.map(s=>{
-        const a=STATE.attendance[s.id]||{present:0,absent:0,late:0,total:45};
-        const rate=a.total?Math.round(a.present/a.total*100):0;
-        return `<div class="prog-wrap">
-          <div class="prog-top">
-            <span class="ts fw6">${s.name}${isAdmin?` <span class="txs tmm">– ${s.grade} ${s.section}</span>`:''}</span>
-            <span class="ts" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}">${rate}%</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}"></div></div>
-        </div>`;
+    ${!isParent?`<div class="card mt-16"><div class="card-title">Attendance Rate Summary</div>
+      ${students.map(s=>{const a=STATE.attendance[s.id]||{present:0,absent:0,late:0,total:45};const rate=a.total?Math.round(a.present/a.total*100):0;
+        return `<div class="prog-wrap"><div class="prog-top"><span class="ts fw6">${s.name}${isAdmin?` <span class="txs tmm">– ${s.grade} ${s.section}</span>`:''}</span><span class="ts" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}">${rate}%</span></div><div class="prog-track"><div class="prog-fill" style="width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}"></div></div></div>`;
       }).join('')}
     </div>`:''}`;
-
-    window.saveAttendance = () => {
-      getStudents().forEach(s=>{
-        const val=todayRecords[s.id]||'Present';
-        if(!STATE.attendance[s.id]) STATE.attendance[s.id]={present:0,absent:0,late:0,total:45};
-        const a=STATE.attendance[s.id];
-        if(val==='Absent') a.absent++;
-        else if(val==='Late'){ a.late++; a.present++; }
-        else a.present++;
-        a.total++;
-      });
-      todayRecords={};
-      toast('Attendance saved for '+selDate+'!');
-      render();
-    };
-    window.onAttendanceChange = sel => { todayRecords[sel.dataset.sid]=sel.value; };
-    window.setAttendanceDate  = value => { selDate=value; };
+    window.saveAttendance=()=>{getStudents().forEach(s=>{const val=todayRecords[s.id]||'Present';if(!STATE.attendance[s.id])STATE.attendance[s.id]={present:0,absent:0,late:0,total:45};const a=STATE.attendance[s.id];if(val==='Absent')a.absent++;else if(val==='Late'){a.late++;a.present++;}else a.present++;a.total++;});todayRecords={};toast('Attendance saved for '+selDate+'!');render();};
+    window.onAttendanceChange=sel=>{todayRecords[sel.dataset.sid]=sel.value;};
+    window.setAttendanceDate=value=>{selDate=value;};
   }
   render();
 }
@@ -1663,177 +1418,150 @@ function pgAttendance(el){
    ════════════════════════════════════════ */
 function pgMessages(el){
   const u = STATE.currentUser;
-  let selectedId = null;
+  let selectedRoot = null;
   let searchQ = '';
 
-  // Group messages into threads — keyed by subject root + participants
-  function getThreads(){
-    const all = STATE.messages.filter(m =>
-      m.toRole === u.role || m.toRole === 'all' ||
-      m.fromId === u.id  || u.role === 'admin'
-    );
-
-    // Build thread map: thread root id → array of messages
-    const threadMap = {};
-    all.forEach(m => {
-      const root = m.thread || m.id;
-      if(!threadMap[root]) threadMap[root] = [];
-      threadMap[root].push(m);
-    });
-
-    // For each thread, return the latest message as the preview
-    return Object.values(threadMap).map(msgs => {
-      msgs.sort((a,b) => new Date(b.date+' '+b.time) - new Date(a.date+' '+a.time));
-      return msgs[0]; // most recent message in thread = preview
-    }).sort((a,b) => new Date(b.date+' '+b.time) - new Date(a.date+' '+a.time));
+  function getAllMsgs(){
+    return STATE.messages.filter(m =>
+      m.toRole===u.role || m.toRole==='all' || m.fromId===u.id || u.role==='admin');
   }
 
-  function getFullThread(rootMsgId){
-    const root = STATE.messages.find(m => m.id === rootMsgId);
-    if(!root) return [];
-    return STATE.messages
-      .filter(m => m.id === rootMsgId || m.thread === rootMsgId)
-      .sort((a,b) => new Date(a.date+' '+a.time) - new Date(b.date+' '+b.time));
+  function getThreadPreviews(){
+    const all = getAllMsgs();
+    const map = {};
+    all.forEach(m => { const root=m.thread||m.id; if(!map[root]) map[root]=[]; map[root].push(m); });
+    return Object.entries(map).map(([root,msgs]) => {
+      msgs.sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+      return { rootId:parseInt(root), latest:msgs[0] };
+    }).sort((a,b) => (b.latest.date+b.latest.time).localeCompare(a.latest.date+a.latest.time));
   }
 
-  function getMyMsgs(){
-    const threads = getThreads();
-    if(!searchQ) return threads;
-    return threads.filter(m =>
-      m.subject.toLowerCase().includes(searchQ) ||
-      m.fromName.toLowerCase().includes(searchQ) ||
-      m.body.toLowerCase().includes(searchQ)
-    );
+  function getThread(rootId){
+    return getAllMsgs()
+      .filter(m => m.id===rootId || m.thread===rootId)
+      .sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
   }
 
   function render(){
-    const msgs = getMyMsgs();
-    const sel  = msgs.find(m => m.id === selectedId) || msgs[0] || null;
+    let threads = getThreadPreviews();
+    if(searchQ) threads = threads.filter(t =>
+      t.latest.subject.toLowerCase().includes(searchQ) ||
+      t.latest.fromName.toLowerCase().includes(searchQ) ||
+      t.latest.body.toLowerCase().includes(searchQ));
+
+    if(!selectedRoot && threads.length>0) selectedRoot = threads[0].rootId;
+    const selThread = threads.find(t=>t.rootId===selectedRoot)||null;
+    const messages  = selThread ? getThread(selThread.rootId) : [];
 
     // Mark as read
-    if(sel && !sel.read && (sel.toId === u.id || sel.toId === 'all')){
-      sel.read = true;
-      updateUnreadBadge();
-      buildSidebar(u.role);
-    }
-    selectedId = sel?.id || null;
+    messages.forEach(m => { if(!m.read&&(m.toId===u.id||m.toId==='all')) m.read=true; });
+    updateUnreadBadge(); buildSidebar(u.role);
 
-    // Get full conversation thread for the selected message
-    const rootId    = sel ? (sel.thread || sel.id) : null;
-    const fullThread = rootId ? getFullThread(rootId) : [];
+    const unreadCount = getAllMsgs().filter(m=>!m.read&&m.toId===u.id).length;
 
     el.innerHTML = `
     <div class="page-head">
-      <div><div class="page-title">Messages</div><div class="page-sub">${msgs.length} conversation(s)</div></div>
+      <div><div class="page-title">Messages</div><div class="page-sub">${threads.length} conversation(s)</div></div>
       <div class="page-actions"><button class="btn btn-primary" onclick="openComposeModal()">✏️ Compose</button></div>
     </div>
     <div class="msg-layout">
-      <!-- Inbox list -->
       <div class="msg-list">
         <div class="msg-list-head">
           <span>Inbox</span>
-          <span class="badge bg-red" style="${msgs.filter(m=>!m.read&&m.toId===u.id).length?'':'display:none'}">
-            ${msgs.filter(m=>!m.read&&m.toId===u.id).length}
-          </span>
+          <span class="badge bg-red" style="${unreadCount?'':'display:none'}">${unreadCount}</span>
         </div>
         <div style="padding:8px">
-          <input style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12.5px;outline:none"
-            placeholder="Search messages..." value="${searchQ}"
-            oninput="window._mqSearch=this.value;reRenderMsgs()">
+          <input id="msg-search-inp" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12.5px;outline:none;font-family:inherit"
+            placeholder="Search messages..." value="${searchQ}">
         </div>
         <div class="msg-list-body">
-          ${msgs.length === 0
+          ${threads.length===0
             ? `<div class="msg-empty"><span>💬</span><span>No messages</span></div>`
-            : msgs.map(m => {
-                const isUnread = !m.read && m.toId === u.id;
-                // Show the last message body as preview
-                const preview  = m.body.replace(/\n/g,' ').slice(0, 55) + (m.body.length>55?'…':'');
-                return `<div class="msg-item ${sel?.id===m.id?'active':''} ${isUnread?'unread':''}"
-                  onclick="window._mqSel=${m.id};reRenderMsgs()">
+            : threads.map(t => {
+                const m = t.latest;
+                const isUnread = !m.read && m.toId===u.id;
+                const preview  = m.body.replace(/\n/g,' ').slice(0,55)+(m.body.length>55?'…':'');
+                return `<div class="msg-item ${t.rootId===selectedRoot?'active':''} ${isUnread?'unread':''}" data-root="${t.rootId}">
                   <div class="msg-item-meta">
-                    <div class="msg-item-name">${m.fromId===u.id ? `You → ${m.toRole}` : m.fromName}</div>
-                    ${isUnread ? '<div class="msg-unread-dot"></div>' : ''}
+                    <div class="msg-item-name">${m.fromId===u.id?`You → ${m.toRole}`:m.fromName}</div>
+                    ${isUnread?'<div class="msg-unread-dot"></div>':''}
                   </div>
-                  <div class="fw6 txs" style="margin-bottom:2px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.subject}</div>
+                  <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${m.subject.replace(/^(Re: )+/,'')}</div>
                   <div class="msg-item-preview">${preview}</div>
-                  <div class="msg-item-date">${m.date} ${m.time}</div>
+                  <div class="msg-item-date">${m.date} · ${m.time}</div>
                 </div>`;
               }).join('')}
         </div>
       </div>
 
-      <!-- Message thread panel -->
       <div class="msg-panel">
-        ${!sel
-          ? `<div class="msg-empty" style="height:100%">
-               <span style="font-size:48px">💬</span>
-               <span class="fw6">Select a message to read</span>
-               <span class="ts tm">or compose a new one</span>
-             </div>`
+        ${!selThread
+          ? `<div class="msg-empty" style="height:100%"><span style="font-size:48px">💬</span><span class="fw6">Select a conversation</span><span class="ts tm">or compose a new one</span></div>`
           : `<div class="msg-panel-head">
-               <div class="msg-panel-subject">${sel.subject.replace(/^(Re: )+/,'')}</div>
-               <div class="msg-panel-meta">
-                 ${sel.studentId ? `Re: ${STATE.students.find(s=>s.id===sel.studentId)?.name||sel.studentId} &nbsp;·&nbsp;` : ''}
-                 ${fullThread.length} message(s)
-               </div>
+               <div class="msg-panel-subject">${selThread.latest.subject.replace(/^(Re: )+/,'')}</div>
+               <div class="msg-panel-meta">${messages.length} message(s)${selThread.latest.studentId?` · Re: ${STATE.students.find(s=>s.id===selThread.latest.studentId)?.name||''}`:''}</div>
              </div>
-             <!-- Full thread conversation -->
-             <div class="msg-panel-body" style="display:flex;flex-direction:column;gap:14px">
-               ${fullThread.map(m => {
-                 const isMe = m.fromId === u.id;
+             <div class="msg-panel-body" id="msg-thread-body" style="display:flex;flex-direction:column;gap:12px">
+               ${messages.map(m => {
+                 const isMe = m.fromId===u.id;
                  return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
-                   <div style="max-width:75%;background:${isMe?'var(--green)':'var(--bg)'};color:${isMe?'#fff':'var(--text)'};
-                     padding:12px 16px;border-radius:${isMe?'16px 16px 4px 16px':'16px 16px 16px 4px'};
-                     font-size:13.5px;line-height:1.65;box-shadow:0 1px 4px rgba(0,0,0,.08)">
+                   <div style="max-width:72%;background:${isMe?'var(--green)':'var(--bg)'};color:${isMe?'#fff':'var(--text)'};padding:11px 15px;border-radius:${isMe?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:13.5px;line-height:1.65;box-shadow:0 1px 4px rgba(0,0,0,.07)">
                      ${m.body.replace(/\n/g,'<br>')}
                    </div>
-                   <div class="txs tmm mt-8">${isMe?'You':'<strong>'+m.fromName+'</strong>'} &nbsp;·&nbsp; ${m.date} ${m.time}</div>
+                   <div class="txs tmm" style="margin-top:4px">${isMe?'You':'<strong>'+m.fromName+'</strong>'} · ${m.date} ${m.time}</div>
                  </div>`;
                }).join('')}
              </div>
              <div class="msg-panel-reply">
                <textarea id="reply-area" placeholder="Type your reply…"></textarea>
-               <button class="btn btn-primary" onclick="sendReply(${rootId})">Send →</button>
+               <button class="btn btn-primary" id="send-reply-btn">Send →</button>
              </div>`}
       </div>
     </div>`;
 
-    window._mqSearch = searchQ;
-    window._mqSel    = selectedId;
-    window.reRenderMsgs = () => {
-      searchQ    = window._mqSearch || '';
-      selectedId = window._mqSel   || null;
-      render();
-    };
+    // Thread click — no full re-render, just switch
+    el.querySelectorAll('.msg-item[data-root]').forEach(item => {
+      item.addEventListener('click', () => { selectedRoot=parseInt(item.dataset.root); render(); scrollChat(); });
+    });
 
-    window.sendReply = (toMsgId) => {
+    // Search input — doesn't reset selectedRoot
+    const si = document.getElementById('msg-search-inp');
+    if(si) si.addEventListener('input', () => { searchQ=si.value.toLowerCase(); render(); });
+
+    // Send reply
+    const btn = document.getElementById('send-reply-btn');
+    if(btn) btn.addEventListener('click', () => {
       const txt = document.getElementById('reply-area')?.value.trim();
       if(!txt){ toast('Reply cannot be empty.','error'); return; }
-      const orig = STATE.messages.find(m => m.id === toMsgId);
+      const orig = STATE.messages.find(m=>m.id===selThread.rootId);
       if(!orig) return;
-      const newMsg = {
-        id: STATE.nextMsgId++,
-        fromRole: u.role, fromId: u.id, fromName: u.name,
-        toRole: orig.fromRole===u.role ? orig.toRole : orig.fromRole,
-        toId:   orig.fromId===u.id     ? orig.toId   : orig.fromId,
-        subject: orig.subject.startsWith('Re:') ? orig.subject : 'Re: '+orig.subject,
-        body: txt,
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
-        read: false, studentId: orig.studentId,
-        thread: orig.thread || orig.id
-      };
-      STATE.messages.unshift(newMsg);
-      selectedId = newMsg.thread || newMsg.id;
-      updateUnreadBadge();
-      buildSidebar(u.role);
-      toast('Reply sent!');
-      render();
-    };
+      STATE.messages.unshift({
+        id:STATE.nextMsgId++,
+        fromRole:u.role,fromId:u.id,fromName:u.name,
+        toRole:orig.fromId===u.id?orig.toRole:orig.fromRole,
+        toId:orig.fromId===u.id?orig.toId:orig.fromId,
+        subject:orig.subject.startsWith('Re:')?orig.subject:'Re: '+orig.subject,
+        body:txt,
+        date:new Date().toISOString().split('T')[0],
+        time:new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
+        read:false,studentId:orig.studentId,
+        thread:orig.thread||orig.id
+      });
+      selectedRoot = orig.thread||orig.id;
+      updateUnreadBadge(); buildSidebar(u.role);
+      toast('Reply sent!'); render(); scrollChat();
+    });
+
+    scrollChat();
+  }
+
+  function scrollChat(){
+    setTimeout(() => { const b=document.getElementById('msg-thread-body'); if(b) b.scrollTop=b.scrollHeight; }, 60);
   }
 
   render();
 }
+
 
 function openComposeModal(){
   const u=STATE.currentUser;
@@ -2156,151 +1884,116 @@ function deleteParent(id, name){
    PROFILE PAGE
    ════════════════════════════════════════ */
 function pgProfile(el){
-  const u = STATE.currentUser;
-  const child = u.role==='parent' ? STATE.students.find(s=>s.id===u.childId) : null;
-  const secondary = u.role==='teacher' ? `${u.grade} – ${u.section}` : u.role==='parent' ? `Child: ${child?.name||'N/A'}` : `School: ${u.school||'N/A'}`;
-  const extraField = u.role==='admin' ? `<div class="fg"><label>School</label><input id="pf-school" value="${u.school||''}"></div>` : '';
-  const contactField = u.role!=='admin' ? `<div class="fg"><label>Phone</label><input id="pf-phone" value="${u.phone||''}"></div>` : '';
+  const u=STATE.currentUser;
+  const child=u.role==='parent'?STATE.students.find(s=>s.id===u.childId):null;
+  const secondary=u.role==='teacher'?`${u.grade} – ${u.section}`:u.role==='parent'?`Child: ${child?.name||'N/A'}`:`School: ${u.school||'N/A'}`;
+  const extraField=u.role==='admin'?`<div class="fg"><label>School</label><input id="pf-school" value="${u.school||''}"></div>`:'';
+  const contactField=u.role!=='admin'?`<div class="fg"><label>Phone</label><input id="pf-phone" value="${u.phone||''}"></div>`:'';
+  const avatarBg=u.role==='admin'?'var(--blue-l)':u.role==='parent'?'var(--amber-l)':'var(--green-l)';
+  const avatarFg=u.role==='admin'?'var(--blue)':u.role==='parent'?'var(--amber)':'var(--green)';
+  const avatarInner=u.avatar
+    ?`<img src="${u.avatar}" style="width:96px;height:96px;object-fit:cover;border-radius:18px;display:block">`
+    :`<div style="width:96px;height:96px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:${avatarFg};background:${avatarBg};border-radius:18px">${ini(u.name)}</div>`;
 
-  // Avatar display
-  const avatarContent = u.avatar
-    ? `<img src="${u.avatar}" style="width:96px;height:96px;object-fit:cover;border-radius:18px;display:block">`
-    : `<div class="profile-avatar" style="color:${u.role==='admin'?'var(--blue)':u.role==='parent'?'var(--amber)':'var(--green)'};background:${u.role==='admin'?'var(--blue-l)':u.role==='parent'?'var(--amber-l)':'var(--green-l)'};">${ini(u.name)}</div>`;
+  const myStudents=u.role==='teacher'?STATE.students.filter(s=>s.section===u.section&&s.grade===u.grade&&s.status==='active'):[];
+  const cg=myStudents.flatMap(s=>{const g=STATE.grades[s.id];return g?STATE.subjects.map(sub=>avg(g[sub])):[];});
+  const classAvg=cg.length?Math.round(cg.reduce((a,b)=>a+b,0)/cg.length):0;
+  const lowCount=myStudents.filter(s=>{const g=STATE.grades[s.id];return g&&STATE.subjects.some(sub=>avg(g[sub])<75);}).length;
+  const attR=myStudents.length?Math.round(myStudents.reduce((s2,s)=>{const at=STATE.attendance[s.id];return s2+(at?.total?at.present/at.total:0);},0)/myStudents.length*100):0;
+  const childG=child?STATE.grades[child.id]:null;
+  const childAvg=childG&&STATE.subjects.length?Math.round(STATE.subjects.reduce((s2,sub)=>s2+avg(childG[sub]),0)/STATE.subjects.length):0;
+  const childAtt=child?(()=>{const at=STATE.attendance[child.id];return at?.total?Math.round(at.present/at.total*100):0;})():0;
 
-  // Snapshot stats
-  const teacherStudents = u.role==='teacher' ? STATE.students.filter(s=>s.section===u.section&&s.grade===u.grade&&s.status==='active') : [];
-  const classGrades     = teacherStudents.flatMap(s=>{ const g=STATE.grades[s.id]; return g?STATE.subjects.map(sub=>avg(g[sub])):[];});
-  const classAvg        = classGrades.length ? Math.round(classGrades.reduce((a,b)=>a+b,0)/classGrades.length) : 0;
-  const lowPerformers   = teacherStudents.filter(s=>{ const g=STATE.grades[s.id]; return g&&STATE.subjects.some(sub=>avg(g[sub])<75);}).length;
-  const teacherAttRate  = teacherStudents.length ? Math.round(teacherStudents.reduce((sum,s)=>{ const at=STATE.attendance[s.id]; return sum+(at?.total?at.present/at.total:0);},0)/teacherStudents.length*100) : 0;
-  const childGrades     = child ? STATE.grades[child.id] : null;
-  const childAvg        = childGrades&&STATE.subjects.length ? Math.round(STATE.subjects.reduce((sum,sub)=>sum+avg(childGrades[sub]),0)/STATE.subjects.length) : 0;
-  const childAtt        = child ? (()=>{ const at=STATE.attendance[child.id]; return at?.total?Math.round(at.present/at.total*100):0;})() : 0;
+  const snap=u.role==='teacher'?[
+    {l:'Students',v:myStudents.length},{l:'Class Avg',v:classAvg+'%'},{l:'Attendance',v:attR+'%'},{l:'Below 75',v:lowCount}
+  ]:u.role==='parent'?[
+    {l:'Child',v:child?.name||'N/A'},{l:'Avg Grade',v:childAvg+'%'},{l:'Attendance',v:childAtt+'%'},{l:'Notifs',v:getNotificationCount()}
+  ]:[
+    {l:'Students',v:STATE.students.filter(s=>s.status==='active').length},{l:'Teachers',v:STATE.teachers.length},
+    {l:'Classes',v:STATE.classes.length},{l:'Unread',v:STATE.messages.filter(m=>!m.read).length}
+  ];
 
-  const featureContent = u.role==='teacher' ? `
-    <div class="profile-feature-head">
-      <div class="profile-feature-title">Class Snapshot</div>
-      <div class="profile-feature-sub">Your current class performance overview.</div>
-    </div>
-    <div class="profile-meta-grid">
-      <div class="profile-meta-item"><div class="profile-meta-label">Students</div><div class="profile-meta-value">${teacherStudents.length}</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Class Avg</div><div class="profile-meta-value">${classAvg}%</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Attendance</div><div class="profile-meta-value">${teacherAttRate}%</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Below 75</div><div class="profile-meta-value">${lowPerformers}</div></div>
-    </div>
-    <div class="profile-actions">
-      <button class="btn btn-secondary btn-sm" onclick="nav('grades')">Grade Entry</button>
-      <button class="btn btn-primary btn-sm" onclick="nav('attendance')">Attendance</button>
-    </div>` : u.role==='parent' ? `
-    <div class="profile-feature-head">
-      <div class="profile-feature-title">Child Snapshot</div>
-      <div class="profile-feature-sub">Track your child's progress at a glance.</div>
-    </div>
-    <div class="profile-meta-grid">
-      <div class="profile-meta-item"><div class="profile-meta-label">Child</div><div class="profile-meta-value" style="font-size:16px">${child?.name||'N/A'}</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Avg Grade</div><div class="profile-meta-value">${childAvg||'—'}%</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Attendance</div><div class="profile-meta-value">${childAtt||'—'}%</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Notifs</div><div class="profile-meta-value">${getNotificationCount()}</div></div>
-    </div>
-    <div class="profile-actions">
-      <button class="btn btn-secondary btn-sm" onclick="nav('announcements')">School News</button>
-      <button class="btn btn-primary btn-sm" onclick="nav('messages')">Messages</button>
-    </div>` : `
-    <div class="profile-feature-head">
-      <div class="profile-feature-title">School Overview</div>
-      <div class="profile-feature-sub">School-wide snapshot for the current year.</div>
-    </div>
-    <div class="profile-meta-grid">
-      <div class="profile-meta-item"><div class="profile-meta-label">Students</div><div class="profile-meta-value">${STATE.students.filter(s=>s.status==='active').length}</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Teachers</div><div class="profile-meta-value">${STATE.teachers.length}</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Classes</div><div class="profile-meta-value">${STATE.classes.length}</div></div>
-      <div class="profile-meta-item"><div class="profile-meta-label">Unread Msgs</div><div class="profile-meta-value">${STATE.messages.filter(m=>!m.read).length}</div></div>
-    </div>
-    <div class="profile-actions">
-      <button class="btn btn-secondary btn-sm" onclick="nav('students')">Students</button>
-      <button class="btn btn-primary btn-sm" onclick="nav('reports')">Reports</button>
-    </div>`;
-
-  el.innerHTML = `
-  <div class="page-head">
-    <div><div class="page-title">Profile</div><div class="page-sub">Update your account details</div></div>
-  </div>
+  el.innerHTML=`
+  <div class="page-head"><div><div class="page-title">Profile</div><div class="page-sub">Manage your account</div></div></div>
   <div class="profile-summary">
     <div class="card">
-      <div class="profile-head" style="align-items:flex-start">
-        <!-- Facebook-style photo upload -->
-        <div class="profile-avatar-wrap" title="Click to change photo">
-          <div id="profile-avatar-display">${avatarContent}</div>
-          <div class="profile-avatar-overlay">📷 Edit</div>
-          <input type="file" accept="image/*" onchange="previewProfilePic(event)">
+      <div class="flex aic gap-16 mb-16" style="padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div id="avatar-wrap" style="position:relative;width:96px;height:96px;flex-shrink:0;border-radius:18px;overflow:hidden;cursor:pointer">
+          <div id="avatar-display">${avatarInner}</div>
+          <div id="avatar-overlay" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;opacity:0;transition:opacity .2s;pointer-events:none">📷 Edit Photo</div>
+          <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="previewProfilePic(event)">
         </div>
-        <div style="margin-left:16px">
-          <div class="profile-name">${u.name}</div>
-          <div class="profile-role">${u.role.charAt(0).toUpperCase()+u.role.slice(1)} · ${secondary}</div>
-          <div class="txs tmm mt-8">${u.email}</div>
+        <div>
+          <div style="font-size:20px;font-weight:800;letter-spacing:-.4px">${u.name}</div>
+          <div class="ts tm mt-4">${u.role.charAt(0).toUpperCase()+u.role.slice(1)} · ${secondary}</div>
+          <div class="txs tmm mt-4">${u.email}</div>
+          <button class="btn btn-secondary btn-xs mt-8" onclick="resetProfilePic()">Remove Photo</button>
         </div>
       </div>
-      <div class="divider"></div>
       <div class="form-grid form-row-2">
         <div class="fg"><label>Full Name</label><input id="pf-name" value="${u.name}"></div>
         <div class="fg"><label>Email</label><input id="pf-email" type="email" value="${u.email}"></div>
-        ${contactField}
-        ${extraField}
+        ${contactField}${extraField}
       </div>
+      <button class="btn btn-primary mt-12" onclick="saveProfile()">Save Changes</button>
+    </div>
+    <div class="card">
+      <div style="font-size:16px;font-weight:800;margin-bottom:4px">${u.role==='teacher'?'Class Snapshot':u.role==='parent'?'Child Snapshot':'School Overview'}</div>
+      <div class="ts tm mb-16">${u.role==='teacher'?'Your current class performance.':u.role==='parent'?"Your child's progress.":"School-wide summary."}</div>
+      <div class="profile-meta-grid">${snap.map(s=>`<div class="profile-meta-item"><div class="profile-meta-label">${s.l}</div><div class="profile-meta-value">${s.v}</div></div>`).join('')}</div>
       <div class="flex gap-10 mt-12">
-        <button class="btn btn-secondary" onclick="resetProfilePic()">Remove Photo</button>
-        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+        ${u.role==='teacher'?`<button class="btn btn-secondary btn-sm" onclick="nav('grades')">Grade Entry</button><button class="btn btn-primary btn-sm" onclick="nav('attendance')">Attendance</button>`:''}
+        ${u.role==='parent'?`<button class="btn btn-secondary btn-sm" onclick="nav('announcements')">School News</button><button class="btn btn-primary btn-sm" onclick="nav('messages')">Messages</button>`:''}
+        ${u.role==='admin'?`<button class="btn btn-secondary btn-sm" onclick="nav('students')">Students</button><button class="btn btn-primary btn-sm" onclick="nav('reports')">Reports</button>`:''}
       </div>
     </div>
-    <div class="card">${featureContent}</div>
-  </div>
-  <div class="card mt-16">
-    <div class="card-title">Account Summary</div>
-    <div class="flex aic gap-12 mb-12"><span class="badge bg-blue">Role</span><span>${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</span></div>
-    <div class="flex aic gap-12 mb-12"><span class="badge bg-green">Email</span><span>${u.email}</span></div>
-    ${u.role==='teacher'?`<div class="flex aic gap-12"><span class="badge bg-amber">Class</span><span>${u.grade} – ${u.section}</span></div>`:''}
-    ${child?`<div class="flex aic gap-12"><span class="badge bg-amber">Child</span><span>${child.name}</span></div>`:''}
   </div>`;
 
-  window._profilePic = undefined;
+  const wrap=document.getElementById('avatar-wrap');
+  const overlay=document.getElementById('avatar-overlay');
+  if(wrap&&overlay){
+    wrap.addEventListener('mouseenter',()=>overlay.style.opacity='1');
+    wrap.addEventListener('mouseleave',()=>overlay.style.opacity='0');
+  }
+  window._profilePic=undefined;
 }
 
 function previewProfilePic(evt){
-  const file = evt.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const display = document.getElementById('profile-avatar-display');
-    if(display) display.innerHTML = `<img src="${e.target.result}" style="width:96px;height:96px;object-fit:cover;border-radius:18px;display:block">`;
-    window._profilePic = e.target.result;
+  const file=evt.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const d=document.getElementById('avatar-display');
+    if(d) d.innerHTML=`<img src="${e.target.result}" style="width:96px;height:96px;object-fit:cover;border-radius:18px;display:block">`;
+    window._profilePic=e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 function resetProfilePic(){
-  const u = STATE.currentUser;
-  const display = document.getElementById('profile-avatar-display');
-  if(display) display.innerHTML = `<div class="profile-avatar" style="color:${u.role==='admin'?'var(--blue)':u.role==='parent'?'var(--amber)':'var(--green)'};background:${u.role==='admin'?'var(--blue-l)':u.role==='parent'?'var(--amber-l)':'var(--green-l)'};">${ini(u.name)}</div>`;
-  window._profilePic = '';
+  const u=STATE.currentUser;
+  const bg=u.role==='admin'?'var(--blue-l)':u.role==='parent'?'var(--amber-l)':'var(--green-l)';
+  const fg=u.role==='admin'?'var(--blue)':u.role==='parent'?'var(--amber)':'var(--green)';
+  const d=document.getElementById('avatar-display');
+  if(d) d.innerHTML=`<div style="width:96px;height:96px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:${fg};background:${bg};border-radius:18px">${ini(u.name)}</div>`;
+  window._profilePic='';
 }
 
 function saveProfile(){
-  const u = STATE.currentUser;
-  const name  = document.getElementById('pf-name')?.value.trim();
-  const email = document.getElementById('pf-email')?.value.trim();
-  if(!name||!email){ toast('Name and email are required.','error'); return; }
-  u.name  = name;
-  u.email = email;
-  if(window._profilePic !== undefined) u.avatar = window._profilePic || null;
-  if(u.role==='admin') u.school = document.getElementById('pf-school')?.value.trim()||u.school;
+  const u=STATE.currentUser;
+  const name=document.getElementById('pf-name')?.value.trim();
+  const email=document.getElementById('pf-email')?.value.trim();
+  if(!name||!email){toast('Name and email are required.','error');return;}
+  u.name=name; u.email=email;
+  if(window._profilePic!==undefined) u.avatar=window._profilePic||null;
+  if(u.role==='admin') u.school=document.getElementById('pf-school')?.value.trim()||u.school;
   if(u.role!=='admin'){
-    const phone = document.getElementById('pf-phone')?.value.trim();
-    if(!phone){ toast('Phone number is required.','error'); return; }
-    if(!/^\d{11}$/.test(phone)){ toast('Phone number must be exactly 11 digits.','error'); return; }
-    u.phone = phone;
+    const phone=document.getElementById('pf-phone')?.value.trim();
+    if(!phone){toast('Phone number is required.','error');return;}
+    if(!/^\d{11}$/.test(phone)){toast('Phone must be exactly 11 digits.','error');return;}
+    u.phone=phone;
   }
   setTopbarAvatar(u);
-  document.getElementById('tb-name').textContent = u.name;
+  document.getElementById('tb-name').textContent=u.name;
   toast('Profile updated successfully!');
 }
 /* ════════════════════════════════════════

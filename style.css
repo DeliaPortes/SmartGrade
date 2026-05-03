@@ -280,8 +280,8 @@ tbody tr:hover td{background:var(--bg)}
   opacity: 0;
   transition: opacity .2s;
 }
-.profile-avatar-wrap:hover .profile-avatar-overlay { opacity: 1; }
-.profile-avatar-wrap input[type="file"] {
+input[type="file"]#avatar-file-input,
+#avatar-wrap input[type="file"] {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -376,3 +376,33 @@ tbody tr:hover td{background:var(--bg)}
   max-width: 220px;
 }
 .msg-item.unread .msg-item-preview { color: var(--text); font-weight: 500; }
+
+@media (hover: none) {
+  .admin-quick-card {
+    border-color: var(--border) !important;
+    transform: none !important;
+  }
+}
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+ 
+/* Hide browser native password eye — Chrome */
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden;
+}
+ 
+/* Hide native reveal button in Edge/Chrome */
+input[type="password"]::-webkit-password-reveal {
+  display: none;
+}
+ 
+/* Extra safety for all password inputs */
+input[type="password"],
+input[type="text"] {
+  -webkit-appearance: none;
+}
+ 
