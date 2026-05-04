@@ -172,12 +172,28 @@ function markNotificationsRead(){
 function updateUnreadBadge(){
   const u = STATE.currentUser;
   if(!u) return;
-  const unreadCount = STATE.messages.filter(m=>!m.read && (m.toRole===u.role||m.toRole==='all') && (m.toId===u.id||m.toId==='all')).length;
+
+  // Count unread messages specifically addressed to this user
+  const unreadCount = STATE.messages.filter(m => {
+    if(m.read) return false;
+    // Must be addressed to this user's role AND this user's specific ID
+    const roleMatch = m.toRole === u.role || m.toRole === 'all';
+    const idMatch = m.toId === u.id || m.toId === 'all';
+    return roleMatch && idMatch;
+  }).length;
+
   const msgBad = document.getElementById('msg-badge');
-  if(msgBad){ msgBad.style.display = unreadCount>0?'flex':'none'; msgBad.textContent = unreadCount || '';} 
+  if(msgBad){
+    msgBad.style.display = unreadCount > 0 ? 'flex' : 'none';
+    msgBad.textContent = unreadCount > 0 ? unreadCount : '';
+  }
+
   const notifCount = getNotificationCount();
   const notifBad = document.getElementById('notif-badge');
-  if(notifBad){ notifBad.style.display = notifCount>0?'flex':'none'; notifBad.textContent = notifCount || ''; }
+  if(notifBad){
+    notifBad.style.display = notifCount > 0 ? 'flex' : 'none';
+    notifBad.textContent = notifCount > 0 ? notifCount : '';
+  }
 }
 
 function setTopbarAvatar(user){
@@ -1453,9 +1469,14 @@ function pgMessages(el){
     const selThread = threads.find(t=>t.rootId===selectedRoot)||null;
     const messages  = selThread ? getThread(selThread.rootId) : [];
 
-    // Mark as read
-    messages.forEach(m => { if(!m.read&&(m.toId===u.id||m.toId==='all')) m.read=true; });
-    updateUnreadBadge(); buildSidebar(u.role);
+    // Mark as read — mark ALL messages in the current thread as read
+messages.forEach(m => {
+  if(!m.read && (m.toId === u.id || m.toId === u.role || m.toId === 'all')) {
+    m.read = true;
+  }
+});
+updateUnreadBadge();
+buildSidebar(u.role);
 
     const unreadCount = getAllMsgs().filter(m=>!m.read&&m.toId===u.id).length;
 
