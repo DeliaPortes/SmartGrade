@@ -6,23 +6,22 @@ const STATE = {
   activeNav: '',
 
   students: [
-    {id:'S001',name:'Ana Reyes',grade:'Grade 4',section:'Mabini',gender:'F',parent:'Mrs. Liza Reyes',parentEmail:'parent@gmail.com',parentId:'P001',contact:'09171234567',status:'active',enrolled:'2024-06-01'},
-    {id:'S002',name:'Ben Gomez',grade:'Grade 4',section:'Mabini',gender:'M',parent:'Mr. Carlos Gomez',parentEmail:'cgomez@gmail.com',parentId:'P002',contact:'09182345678',status:'active',enrolled:'2024-06-01'},
-    {id:'S003',name:'Juan Jr. Dela Cruz',grade:'Grade 4',section:'Mabini',gender:'M',parent:'Mr. Juan Dela Cruz',parentEmail:'parent@gmail.com',parentId:'P003',contact:'09193456789',status:'active',enrolled:'2024-06-01'},
-    {id:'S004',name:'Carla Santos',grade:'Grade 4',section:'Mabini',gender:'F',parent:'Mrs. Rosa Santos',parentEmail:'rsantos@gmail.com',parentId:'P004',contact:'09204567890',status:'active',enrolled:'2024-06-01'},
-    {id:'S005',name:'Diego Lim',grade:'Grade 4',section:'Mabini',gender:'M',parent:'Ms. Aileen Lim',parentEmail:'alim@gmail.com',parentId:'P005',contact:'09215678901',status:'active',enrolled:'2024-06-01'},
-    {id:'S006',name:'Eva Torres',grade:'Grade 4',section:'Rizal',gender:'F',parent:'Mr. Bobby Torres',parentEmail:'btorres@gmail.com',parentId:'P006',contact:'09226789012',status:'active',enrolled:'2024-06-01'},
-    {id:'S007',name:'Felix Ramos',grade:'Grade 5',section:'Bonifacio',gender:'M',parent:'Mrs. Nena Ramos',parentEmail:'nramos@gmail.com',parentId:'P007',contact:'09237890123',status:'active',enrolled:'2024-06-01'},
-    {id:'S008',name:'Grace Tan',grade:'Grade 5',section:'Bonifacio',gender:'F',parent:'Mr. Anthony Tan',parentEmail:'atan@gmail.com',parentId:'P008',contact:'09248901234',status:'inactive',enrolled:'2024-06-01'},
-    {id:'S009',name:'Harold Cruz',grade:'Grade 3',section:'Luna',gender:'M',parent:'Mrs. Paz Cruz',parentEmail:'pcruz@gmail.com',parentId:'P009',contact:'09259012345',status:'active',enrolled:'2024-06-01'},
-    {id:'S010',name:'Iris Bautista',grade:'Grade 3',section:'Luna',gender:'F',parent:'Mr. Leo Bautista',parentEmail:'lbautista@gmail.com',parentId:'P010',contact:'09260123456',status:'active',enrolled:'2024-06-01'},
+    {id:'S001',name:'Maria Reyes',grade:'Grade 1',section:'Sampaguita',gender:'F',parent:'Mrs. Liza Reyes',parentEmail:'parent@gmail.com',parentId:'P001',contact:'09171234567',status:'active',enrolled:'2024-06-01'},
+    {id:'S002',name:'Juan Gomez',grade:'Grade 1',section:'Sampaguita',gender:'M',parent:'Mr. Carlos Gomez',parentEmail:'cgomez@gmail.com',parentId:'P002',contact:'09182345678',status:'active',enrolled:'2024-06-01'},
+    {id:'S003',name:'Jose Dela Cruz Jr.',grade:'Grade 1',section:'Sampaguita',gender:'M',parent:'Mr. Juan Dela Cruz',parentEmail:'parent@gmail.com',parentId:'P003',contact:'09193456789',status:'active',enrolled:'2024-06-01'},
+    {id:'S004',name:'Ana Santos',grade:'Grade 2',section:'Rosal',gender:'F',parent:'Mrs. Rosa Santos',parentEmail:'rsantos@gmail.com',parentId:'P004',contact:'09204567890',status:'active',enrolled:'2024-06-01'},
+    {id:'S005',name:'Pedro Lim',grade:'Grade 2',section:'Rosal',gender:'M',parent:'Ms. Aileen Lim',parentEmail:'alim@gmail.com',parentId:'P005',contact:'09215678901',status:'active',enrolled:'2024-06-01'},
+    {id:'S006',name:'Sofia Torres',grade:'Grade 2',section:'Rosal',gender:'F',parent:'Mr. Bobby Torres',parentEmail:'btorres@gmail.com',parentId:'P006',contact:'09226789012',status:'active',enrolled:'2024-06-01'},
+    {id:'S007',name:'Carlo Ramos',grade:'Grade 3',section:'Gumamela',gender:'M',parent:'Mrs. Nena Ramos',parentEmail:'nramos@gmail.com',parentId:'P007',contact:'09237890123',status:'active',enrolled:'2024-06-01'},
+    {id:'S008',name:'Lisa Tan',grade:'Grade 3',section:'Gumamela',gender:'F',parent:'Mr. Anthony Tan',parentEmail:'atan@gmail.com',parentId:'P008',contact:'09248901234',status:'active',enrolled:'2024-06-01'},
+    {id:'S009',name:'Marco Cruz',grade:'Grade 3',section:'Gumamela',gender:'M',parent:'Mrs. Paz Cruz',parentEmail:'pcruz@gmail.com',parentId:'P009',contact:'09259012345',status:'active',enrolled:'2024-06-01'},
+    {id:'S010',name:'Nina Bautista',grade:'Grade 3',section:'Gumamela',gender:'F',parent:'Mr. Leo Bautista',parentEmail:'lbautista@gmail.com',parentId:'P010',contact:'09260123456',status:'active',enrolled:'2024-06-01'},
   ],
 
   teachers: [
-    {id:'T001',name:'Ms. Maria Santos',email:'teacher@smartgrade.edu',phone:'09171111111',grade:'Grade 4',section:'Mabini',subjects:'All Subjects',status:'active',joined:'2020-06-01'},
-    {id:'T002',name:'Mr. Pedro Reyes',email:'preyes@smartgrade.edu',phone:'09182222222',grade:'Grade 5',section:'Bonifacio',subjects:'All Subjects',status:'active',joined:'2019-06-01'},
-    {id:'T003',name:'Ms. Carmen Lim',email:'clim@smartgrade.edu',phone:'09193333333',grade:'Grade 4',section:'Rizal',subjects:'All Subjects',status:'active',joined:'2021-06-01'},
-    {id:'T004',name:'Mr. Danilo Torres',email:'dtorres@smartgrade.edu',phone:'09204444444',grade:'Grade 3',section:'Luna',subjects:'All Subjects',status:'active',joined:'2018-06-01'},
+    {id:'T001',name:'Ms. Maria Santos',email:'teacher@smartgrade.edu',phone:'09171111111',grade:'Grade 1',section:'Sampaguita',subjects:'All Subjects',status:'active',joined:'2020-06-01'},
+    {id:'T002',name:'Mr. Pedro Reyes',email:'preyes@smartgrade.edu',phone:'09182222222',grade:'Grade 2',section:'Rosal',subjects:'All Subjects',status:'active',joined:'2019-06-01'},
+    {id:'T003',name:'Ms. Carmen Lim',email:'clim@smartgrade.edu',phone:'09193333333',grade:'Grade 3',section:'Gumamela',subjects:'All Subjects',status:'active',joined:'2021-06-01'},
   ],
 
   parents: [
@@ -53,6 +52,8 @@ const STATE = {
     S006:{math:[90,93,88,92],science:[85,87,83,89],english:[88,91,86,90],filipino:[92,94,90,93],ap:[87,89,85,91]},
     S007:{math:[78,80,75,82],science:[84,86,81,85],english:[76,79,73,80],filipino:[82,84,80,85],ap:[79,81,77,83]},
     S008:{math:[72,74,70,76],science:[78,75,80,77],english:[74,72,76,73],filipino:[77,79,75,78],ap:[73,71,75,72]},
+    S009:{math:[86,88,84,89],science:[80,82,78,83],english:[84,86,82,87],filipino:[88,90,86,91],ap:[82,84,80,85]},
+    S010:{math:[91,93,89,94],science:[87,89,85,90],english:[89,91,87,92],filipino:[93,95,91,96],ap:[85,87,83,88]},
   },
 
   attendance: {
@@ -64,32 +65,33 @@ const STATE = {
     S006:{present:43,absent:1,late:1,total:45},
     S007:{present:39,absent:4,late:2,total:45},
     S008:{present:35,absent:7,late:3,total:45},
+    S009:{present:42,absent:2,late:1,total:45},
+    S010:{present:44,absent:1,late:0,total:45},
   },
 
   messages: [
-    {id:1,fromRole:'parent',fromId:'P003',fromName:'Mr. Juan Dela Cruz',toRole:'teacher',toId:'teacher',subject:'Concern about Math performance',body:'Good day Ma\'am Santos. I would like to ask about my son Juan Jr.\'s performance in Math this quarter. He seems to be struggling with fractions at home. Can we schedule a parent-teacher meeting this week? Thank you.',date:'2025-01-20',time:'09:30 AM',read:false,studentId:'S003',thread:null},
-    {id:2,fromRole:'teacher',fromId:'teacher',fromName:'Ms. Maria Santos',toRole:'parent',toId:'P003',subject:'Re: Concern about Math performance',body:'Good day Mr. Dela Cruz! Thank you for reaching out. Juan Jr. is actually doing exceptionally well — he currently holds the highest Math score in class at 95 this quarter! I would be happy to meet on Friday at 3:00 PM to show you his progress charts and discuss strategies to keep him motivated. Please confirm your availability.',date:'2025-01-21',time:'10:15 AM',read:true,studentId:'S003',thread:1},
-    {id:3,fromRole:'admin',fromId:'admin',fromName:'Principal Roberto Cruz',toRole:'teacher',toId:'teacher',subject:'Q3 Grade Submission Reminder',body:'Dear Teachers, This is a reminder that Q3 grades must be submitted by January 31, 2025, 5:00 PM. Please ensure all student records are accurate and complete. Late submissions will require a signed explanation form. Contact the registrar\'s office for any concerns. Thank you.',date:'2025-01-22',time:'08:00 AM',read:false,studentId:null,thread:null},
-    {id:4,fromRole:'parent',fromId:'parent2',fromName:'Mrs. Rosa Santos',toRole:'teacher',toId:'teacher',subject:'Scholarship Application – Progress Report Needed',body:'Good morning Ma\'am! We are applying for a scholarship for Carla and we need an updated official progress report. Could you please prepare this at your earliest convenience? We need it by January 28. Thank you very much!',date:'2025-01-24',time:'07:45 AM',read:false,studentId:'S004',thread:null},
-    {id:5,fromRole:'teacher',fromId:'teacher',fromName:'Ms. Maria Santos',toRole:'parent',toId:'parent3',subject:'Attendance Alert: Diego Lim',body:'Dear Ms. Aileen Lim, I hope this message finds you well. I am writing to inform you that Diego has been absent 5 times this month, which may affect his quarterly grades and standing. Attendance is critical at this stage. Please let me know if there are any issues we can address together. I am available for a call this week.',date:'2025-01-23',time:'02:00 PM',read:true,studentId:'S005',thread:null},
+    {id:1,fromRole:'parent',fromId:'P003',fromName:'Mr. Juan Dela Cruz',toRole:'teacher',toId:'teacher',subject:'Concern about Math performance',body:'Good day Ma\'am Santos. I would like to ask about my son Jose Jr.\'s performance in Math this quarter. He seems to be struggling with basic addition at home. Can we schedule a parent-teacher meeting this week? Thank you.',date:'2025-01-20',time:'09:30 AM',read:false,studentId:'S003',thread:null},
+    {id:2,fromRole:'teacher',fromId:'teacher',fromName:'Ms. Maria Santos',toRole:'parent',toId:'P003',subject:'Re: Concern about Math performance',body:'Good day Mr. Dela Cruz! Thank you for reaching out. Jose Jr. is actually doing exceptionally well — he currently holds the highest Math score in Grade 1 at 95 this quarter! I would be happy to meet on Friday at 3:00 PM. Please confirm your availability.',date:'2025-01-21',time:'10:15 AM',read:true,studentId:'S003',thread:1},
+    {id:3,fromRole:'admin',fromId:'admin',fromName:'Principal Roberto Cruz',toRole:'teacher',toId:'teacher',subject:'Q3 Grade Submission Reminder',body:'Dear Teachers, This is a reminder that Q3 grades must be submitted by January 31, 2025, 5:00 PM. Please ensure all student records are accurate and complete. Thank you.',date:'2025-01-22',time:'08:00 AM',read:false,studentId:null,thread:null},
+    {id:4,fromRole:'parent',fromId:'P004',fromName:'Mrs. Rosa Santos',toRole:'teacher',toId:'teacher',subject:'Scholarship Application – Progress Report Needed',body:'Good morning Ma\'am! We are applying for a scholarship for Ana and we need an updated official progress report. Could you please prepare this at your earliest convenience? We need it by January 28. Thank you very much!',date:'2025-01-24',time:'07:45 AM',read:false,studentId:'S004',thread:null},
+    {id:5,fromRole:'teacher',fromId:'teacher',fromName:'Ms. Maria Santos',toRole:'parent',toId:'P005',subject:'Attendance Alert: Pedro Lim',body:'Dear Ms. Aileen Lim, I hope this message finds you well. I am writing to inform you that Pedro has been absent 5 times this month, which may affect his quarterly grades. Please let me know if there are any issues we can address together.',date:'2025-01-23',time:'02:00 PM',read:true,studentId:'S005',thread:null},
   ],
 
   announcements: [
-    {id:1,title:'Q3 Report Cards Now Ready for Pickup',body:'Grade 3, 4, and 5 report cards for the 3rd quarter are now available at the Registrar\'s Office. Please bring a valid government-issued ID. Parents must sign the logbook upon claiming. Office hours: Monday to Friday, 8:00 AM to 5:00 PM.',date:'2025-01-25',audience:'all',author:'Principal Cruz',priority:'high',authorRole:'admin'},
-    {id:2,title:'Parent-Teacher Conference – February 5, 2025',body:'The quarterly Parent-Teacher Conference is scheduled on Wednesday, February 5, 2025 from 8:00 AM to 12:00 NN. All parents of Grade 3, 4, and 5 students are strongly encouraged to attend. Please sign up at the front office or contact your child\'s teacher to confirm your schedule.',date:'2025-01-24',audience:'all',author:'Principal Cruz',priority:'high',authorRole:'admin'},
-    {id:3,title:'Science Fair Project Proposals Due January 30',body:'All Grade 4 homeroom teachers must collect and compile student Science Fair project proposals by January 30, 2025. Please use the approved format from the Science Department. Projects will be evaluated on relevance, feasibility, and scientific method. Submit proposals to Ms. Reyes at the Science Office.',date:'2025-01-23',audience:'teacher',author:'Principal Cruz',priority:'normal',authorRole:'admin'},
+    {id:1,title:'Q3 Report Cards Now Ready for Pickup',body:'Grade 1, 2, and 3 report cards for the 3rd quarter are now available at the Registrar\'s Office. Please bring a valid government-issued ID. Parents must sign the logbook upon claiming. Office hours: Monday to Friday, 8:00 AM to 5:00 PM.',date:'2025-01-25',audience:'all',author:'Principal Cruz',priority:'high',authorRole:'admin'},
+    {id:2,title:'Parent-Teacher Conference – February 5, 2025',body:'The quarterly Parent-Teacher Conference is scheduled on Wednesday, February 5, 2025 from 8:00 AM to 12:00 NN. All parents of Grade 1, 2, and 3 students are strongly encouraged to attend. Please sign up at the front office or contact your child\'s teacher to confirm your schedule.',date:'2025-01-24',audience:'all',author:'Principal Cruz',priority:'high',authorRole:'admin'},
+    {id:3,title:'Reading Program – Grade 1 and 2',body:'All Grade 1 and 2 homeroom teachers must submit their students\' reading assessment results by January 30, 2025. Please use the approved format from the English Department. Submit results to Ms. Reyes at the Academic Office.',date:'2025-01-23',audience:'teacher',author:'Principal Cruz',priority:'normal',authorRole:'admin'},
     {id:4,title:'No Classes – February 25 (EDSA People Power Anniversary)',body:'There will be no classes on Tuesday, February 25, 2025 in observance of the EDSA People Power Revolution Anniversary, a national holiday. Regular classes will resume on Wednesday, February 26, 2025.',date:'2025-01-22',audience:'all',author:'Admin Office',priority:'normal',authorRole:'admin'},
   ],
 
   classes: [
-    {id:'C001',grade:'Grade 3',section:'Luna',teacherId:'T004',year:'2024-2025'},
-    {id:'C002',grade:'Grade 4',section:'Mabini',teacherId:'T001',year:'2024-2025'},
-    {id:'C003',grade:'Grade 4',section:'Rizal',teacherId:'T003',year:'2024-2025'},
-    {id:'C004',grade:'Grade 5',section:'Bonifacio',teacherId:'T002',year:'2024-2025'},
+    {id:'C001',grade:'Grade 1',section:'Sampaguita',teacherId:'T001',year:'2024-2025'},
+    {id:'C002',grade:'Grade 2',section:'Rosal',teacherId:'T002',year:'2024-2025'},
+    {id:'C003',grade:'Grade 3',section:'Gumamela',teacherId:'T003',year:'2024-2025'},
   ],
 
   users: {
-    teacher:{role:'teacher',id:'teacher',name:'Ms. Maria Santos',email:'teacher@smartgrade.edu',password:'password123',grade:'Grade 4',section:'Mabini',teacherId:'T001'},
+    teacher:{role:'teacher',id:'teacher',name:'Ms. Maria Santos',email:'teacher@smartgrade.edu',password:'password123',grade:'Grade 1',section:'Sampaguita',teacherId:'T001'},
     parent:{role:'parent',id:'P003',name:'Mr. Juan Dela Cruz',email:'parent@gmail.com',password:'password123',childIds:['S003'],childId:'S003'},
     admin:{role:'admin',id:'admin',name:'Principal Roberto Cruz',email:'admin@smartgrade.edu',password:'password123',school:'Polangui South Central School'},
   },
@@ -98,7 +100,7 @@ const STATE = {
   subjectLabels: {math:'Mathematics',science:'Science',english:'English',filipino:'Filipino',ap:'Araling Panlipunan'},
   quarters: ['Q1','Q2','Q3','Q4','Final'],
   nextStudentId: 11,
-  nextTeacherId: 5,
+  nextTeacherId: 4,
   nextMsgId: 6,
   nextAnnId: 5,
 };
@@ -650,13 +652,13 @@ function pgAdminDash(el){
     <div style="position:relative;z-index:1">
       <div class="hero-rl">Admin Dashboard</div>
       <div class="hero-name">Welcome, ${u.name.split(' ').slice(-1)[0]}! 👋</div>
-      <div class="hero-sub">${today}</div>
-      <div class="hero-kpis">
-        <div><div class="hero-kpi-val">${total}</div><div class="hero-kpi-lbl">Total Students</div></div>
-        <div><div class="hero-kpi-val">${STATE.teachers.length}</div><div class="hero-kpi-lbl">Teachers</div></div>
-        <div><div class="hero-kpi-val">${schAvg}</div><div class="hero-kpi-lbl">School Average</div></div>
-        <div><div class="hero-kpi-val">${unreadMsgs}</div><div class="hero-kpi-lbl">Unread Messages</div></div>
-      </div>
+    <div class="hero-sub">${today} &nbsp;·&nbsp; Polangui South Central School</div>
+   <div class="hero-kpis">
+  <div><div class="hero-kpi-val">${total}</div><div class="hero-kpi-lbl">Total Students</div></div>
+  <div><div class="hero-kpi-val">${STATE.teachers.length}</div><div class="hero-kpi-lbl">Teachers</div></div>
+  <div><div class="hero-kpi-val">1–3</div><div class="hero-kpi-lbl">Grade Levels</div></div>
+  <div><div class="hero-kpi-val">${schAvg}</div><div class="hero-kpi-lbl">School Average</div></div>
+</div>
     </div>
   </div>
 
@@ -847,7 +849,7 @@ function openAddStudentModal(){
     <div class="form-grid form-row-2">
       <div class="fg"><label>First Name*</label><input id="sf-fn" placeholder="First name"></div>
       <div class="fg"><label>Last Name*</label><input id="sf-ln" placeholder="Last name"></div>
-      <div class="fg"><label>Grade*</label><select id="sf-gr">${['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'].map(g=>`<option>${g}</option>`).join('')}</select></div>
+      <div class="fg"><label>Grade*</label><select id="sf-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section*</label><input id="sf-sec" placeholder="e.g. Mabini"></div>
       <div class="fg"><label>Gender*</label><select id="sf-gen"><option value="F">Female</option><option value="M">Male</option></select></div>
       <div class="fg"><label>Status</label><select id="sf-st"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
@@ -891,7 +893,7 @@ function openEditStudentModal(id){
     <div class="form-grid form-row-2">
       <div class="fg"><label>First Name*</label><input id="ef-fn" value="${s.name.split(' ')[0]}"></div>
       <div class="fg"><label>Last Name*</label><input id="ef-ln" value="${s.name.split(' ').slice(1).join(' ')}"></div>
-      <div class="fg"><label>Grade*</label><select id="ef-gr">${['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'].map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('')}</select></div>
+      <div class="fg"><label>Grade*</label><select id="ef-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section*</label><input id="ef-sec" value="${s.section}"></div>
       <div class="fg"><label>Gender*</label><select id="ef-gen"><option value="F" ${s.gender==='F'?'selected':''}>Female</option><option value="M" ${s.gender==='M'?'selected':''}>Male</option></select></div>
       <div class="fg"><label>Status</label><select id="ef-st"><option value="active" ${s.status==='active'?'selected':''}>Active</option><option value="inactive" ${s.status==='inactive'?'selected':''}>Inactive</option></select></div>
@@ -1013,7 +1015,7 @@ function openAddTeacherModal(){
       <div class="fg"><label>Title</label><select id="tf-ti"><option>Ms.</option><option>Mrs.</option><option>Mr.</option><option>Dr.</option></select></div>
       <div class="fg"><label>Email*</label><input id="tf-em" type="email" placeholder="teacher@school.edu"></div>
       <div class="fg"><label>Phone</label><input id="tf-ph" placeholder="09XXXXXXXXX"></div>
-      <div class="fg"><label>Grade Assigned*</label><select id="tf-gr">${['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'].map(g=>`<option>${g}</option>`).join('')}</select></div>
+      <div class="fg"><label>Grade Assigned*</label><select id="tf-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option>${g}</option>`).join('')}</select></div>
       <div class="fg" style="grid-column:span 2"><label>Section*</label><input id="tf-sec" placeholder="e.g. Mabini"></div>
     </div>
   </div>
@@ -1050,7 +1052,7 @@ function openEditTeacherModal(id){
       <div class="fg" style="grid-column:span 2"><label>Full Name*</label><input id="etf-nm" value="${t.name}"></div>
       <div class="fg"><label>Email*</label><input id="etf-em" type="email" value="${t.email}"></div>
       <div class="fg"><label>Phone</label><input id="etf-ph" value="${t.phone}"></div>
-      <div class="fg"><label>Grade</label><select id="etf-gr">${['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'].map(g=>`<option ${g===t.grade?'selected':''}>${g}</option>`).join('')}</select></div>
+      <div class="fg"><label>Grade</label><select id="etf-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option ${g===t.grade?'selected':''}>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section</label><input id="etf-sec" value="${t.section}"></div>
       <div class="fg"><label>Status</label><select id="etf-st"><option value="active" ${t.status==='active'?'selected':''}>Active</option><option value="inactive" ${t.status==='inactive'?'selected':''}>Inactive</option></select></div>
     </div>
@@ -1260,7 +1262,7 @@ function openAddClassModal(){
   <div class="modal-header"><div class="modal-title">Add New Class</div><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
     <div class="form-grid form-row-2">
-      <div class="fg"><label>Grade*</label><select id="clf-gr">${['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6'].map(g=>`<option>${g}</option>`).join('')}</select></div>
+      <div class="fg"><label>Grade*</label><select id="clf-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section Name*</label><input id="clf-sec" placeholder="e.g. Mabini"></div>
       <div class="fg"><label>Assign Teacher</label><select id="clf-t"><option value="">-- None --</option>${STATE.teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
       <div class="fg"><label>School Year</label><input id="clf-yr" value="2024-2025"></div>
@@ -1407,7 +1409,7 @@ function pgAttendance(el){
         }).join('')}</tbody>
       </table></div>
       ${isParent?`<div class="card">
-        <div class="card-title">Attendance Calendar – January 2025</div>
+        <div class="card-title">Attendance Calendar – May 2026 &nbsp;·&nbsp; Polangui South Central School</div>
         <div class="att-cal">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="att-cal-hdr">${d}</div>`).join('')}${Array.from({length:31},(_,i)=>`<div class="att-cal-cell ${calTypes[i]}">${i+1}</div>`).join('')}</div>
         <div class="att-legend">
           <div class="att-leg-item"><div class="att-leg-dot" style="background:var(--blue-l)"></div>Present</div>
