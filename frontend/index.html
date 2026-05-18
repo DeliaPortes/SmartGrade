@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartGrade – Academic Monitoring & Communication System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login-page">
+
+  <div class="login-left">
+    <div class="ll-logo">
+      <div class="ll-icon"><img src="images/logo.png" alt="SmartGrade"></div>
+      <div class="ll-brand">SmartGrade</div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-box">
+
+      <div style="text-align:center;margin-bottom:22px">
+        <div class="lbox-title">LOGIN</div>
+        <div class="lbox-sub">Polangui South Central School</div>
+      </div>
+
+      <div id="login-form-section">
+
+        <div class="lf">
+          <label>Username / Email</label>
+          <input id="l-email" type="email" placeholder="Enter your email address">
+        </div>
+
+        <div class="lf">
+          <label>Password</label>
+          <div class="pass-wrap">
+            <input id="l-pass" type="password" placeholder="Enter your password">
+            <button type="button" class="pass-toggle" id="pass-toggle"
+              onclick="togglePasswordVisibility()" aria-label="Show password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;margin-top:-4px">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;color:#18180E;font-weight:500">
+            <input type="checkbox" id="remember-me" style="width:14px;height:14px;border-radius:3px;cursor:pointer;accent-color:#6b8fa8;"> Remember Me
+          </label>
+          <span class="forgot-link" style="margin:0" onclick="openForgotPassword()">Forgot Password?</span>
+        </div>
+
+        <button class="login-cta" onclick="doLogin()">LOGIN</button>
+
+        <div style="text-align:center;margin-top:14px;font-size:12px;color:#18180E">
+          Don't Have an Account? &gt;
+          <span style="color:var(--green);font-weight:600;cursor:pointer" onclick="showLoginTab('register')">Sign Up!</span>
+        </div>
+      </div>
+
+      <div id="register-form-section" style="display:none">
+
+        <div class="reg-info-box">
+          <strong>ℹ How it works:</strong> Submit your registration below.
+          The school principal will review and approve your account before you can log in.
+        </div>
+
+        <div class="form-grid form-row-2" style="gap:11px;margin-bottom:12px">
+          <div class="lf" style="margin-bottom:0">
+            <label>Full Name*</label>
+            <input id="r-name" type="text" placeholder="e.g. Ms. Maria Santos">
+          </div>
+          <div class="lf" style="margin-bottom:0">
+            <label>Email Address*</label>
+            <input id="r-email" type="email" placeholder="teacher@school.edu">
+          </div>
+          <div class="lf" style="margin-bottom:0">
+            <label>Password*</label>
+            <input id="r-pass" type="password" placeholder="Create a password">
+          </div>
+          <div class="lf" style="margin-bottom:0">
+            <label>Phone Number</label>
+            <input id="r-phone" type="tel" placeholder="09XXXXXXXXX">
+          </div>
+          <div class="lf" style="margin-bottom:0">
+            <label>Grade Level*</label>
+            <select id="r-grade">
+              <option value="Grade 1">Grade 1</option>
+              <option value="Grade 2">Grade 2</option>
+              <option value="Grade 3">Grade 3</option>
+            </select>
+          </div>
+          <div class="lf" style="margin-bottom:0">
+            <label>Section*</label>
+            <input id="r-section" type="text" placeholder="e.g. Sampaguita">
+          </div>
+        </div>
+
+        <button class="login-cta" onclick="doRegisterTeacher()">Submit Registration →</button>
+
+        <div class="login-switch-link" style="margin-top:14px">
+          Already have an account?
+          <span onclick="showLoginTab('login')">Sign in here</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="app">
+
+  <div class="topbar" id="topbar">
+    <div class="tb-brand">
+      <img class="tb-brand-logo" src="images/logo.png" alt="SmartGrade">
+      <span class="tb-brand-text">SmartGrade</span>
+    </div>
+
+    <button class="tb-notif-btn" onclick="openNotifications()" title="Notifications">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+      </svg>
+      <span class="tb-topbadge" id="notif-badge" style="display:none"></span>
+    </button>
+
+    <button class="tb-notif-btn" onclick="nav('messages')" title="Messages">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+      </svg>
+      <span class="tb-topbadge" id="msg-badge" style="display:none"></span>
+    </button>
+
+    <div class="tb-user" onclick="nav('profile')" title="My Profile">
+      <div class="av av-32 av-green" id="tb-av">?</div>
+      <div class="tb-user-info">
+        <div class="tb-uname" id="tb-name">User</div>
+        <div class="tb-urole" id="tb-role">role</div>
+      </div>
+    </div>
+
+    <button class="tb-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+
+  <div class="app-body">
+    <nav class="sidebar" id="sidebar"></nav>
+    <div class="content" id="content"></div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
