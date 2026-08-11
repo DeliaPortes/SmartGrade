@@ -1,5 +1,5 @@
 """
-SmartGrade v2 — Backend API
+TrackEd v2 — Backend API
 Flask + SQLite REST API
 
 New in v2:
@@ -22,8 +22,8 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "smartgrade-v2-secret-2025")
-DB_PATH    = os.path.join(os.path.dirname(__file__), "smartgrade_v2.db")
+SECRET_KEY = os.environ.get("SECRET_KEY", "tracked-v2-secret-2025")
+DB_PATH    = os.path.join(os.path.dirname(__file__), "tracked_v2.db")
 
 # ─── DepEd subjects by grade ────────────────────────────────────────────────
 SUBJECTS_BY_GRADE = {
@@ -262,18 +262,18 @@ def init_db():
 
     # ── Users ──────────────────────────────────────────────────────────────
     cur.executemany("INSERT INTO users VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", [
-        ("principal","Principal Roberto Cruz","principal@smartgrade.edu",_hash("password123"),"principal",None,None,"Polangui South Central School",None,None,None,None,None),
-        ("T001","Ms. Maria Santos","teacher@smartgrade.edu",_hash("password123"),"teacher","09171111111",None,None,"Grade 1","Sampaguita","T001",None,None),
-        ("T002","Mr. Pedro Reyes","preyes@smartgrade.edu",_hash("password123"),"teacher","09182222222",None,None,"Grade 2","Rosal","T002",None,None),
-        ("T003","Ms. Carmen Lim","clim@smartgrade.edu",_hash("password123"),"teacher","09193333333",None,None,"Grade 3","Gumamela","T003",None,None),
+        ("principal","Principal Roberto Cruz","principal@tracked.edu",_hash("password123"),"principal",None,None,"Polangui South Central School",None,None,None,None,None),
+        ("T001","Ms. Maria Santos","teacher@tracked.edu",_hash("password123"),"teacher","09171111111",None,None,"Grade 1","Sampaguita","T001",None,None),
+        ("T002","Mr. Pedro Reyes","preyes@tracked.edu",_hash("password123"),"teacher","09182222222",None,None,"Grade 2","Rosal","T002",None,None),
+        ("T003","Ms. Carmen Lim","clim@tracked.edu",_hash("password123"),"teacher","09193333333",None,None,"Grade 3","Gumamela","T003",None,None),
         ("P003","Mr. Juan Dela Cruz","parent@gmail.com",_hash("password123"),"parent","09193456789",None,None,None,None,None,"S003",None),
     ])
 
     # ── Teachers ───────────────────────────────────────────────────────────
     cur.executemany("INSERT INTO teachers VALUES(?,?,?,?,?,?,?,?,?)", [
-        ("T001","Ms. Maria Santos","teacher@smartgrade.edu","09171111111","Grade 1","Sampaguita","All Subjects","active","2020-06-01"),
-        ("T002","Mr. Pedro Reyes","preyes@smartgrade.edu","09182222222","Grade 2","Rosal","All Subjects","active","2019-06-01"),
-        ("T003","Ms. Carmen Lim","clim@smartgrade.edu","09193333333","Grade 3","Gumamela","All Subjects","active","2021-06-01"),
+        ("T001","Ms. Maria Santos","teacher@tracked.edu","09171111111","Grade 1","Sampaguita","All Subjects","active","2020-06-01"),
+        ("T002","Mr. Pedro Reyes","preyes@tracked.edu","09182222222","Grade 2","Rosal","All Subjects","active","2019-06-01"),
+        ("T003","Ms. Carmen Lim","clim@tracked.edu","09193333333","Grade 3","Gumamela","All Subjects","active","2021-06-01"),
     ])
 
     # ── Students ───────────────────────────────────────────────────────────
@@ -355,8 +355,8 @@ def init_db():
         ("teacher","T001","Ms. Maria Santos","parent","P003","Re: Concern about Math performance",
          "Good day Mr. Dela Cruz! Jose Jr. is doing exceptionally well — he has a 95 in Math this quarter!",
          "2025-01-21","10:15 AM",1,"S003",1,0),
-        ("system","system","🔔 SmartGrade Alert","parent","P005","Academic Alert: Pedro Lim — Mathematics (Q1)",
-         "This is an automated notification from SmartGrade.\n\nPedro Lim has received a grade of 65 in Mathematics for Q1, which is below the passing mark of 75.\n\nPlease coordinate with Ms. Maria Santos at your earliest convenience.",
+        ("system","system","🔔 TrackEd Alert","parent","P005","Academic Alert: Pedro Lim — Mathematics (Q1)",
+         "This is an automated notification from TrackEd.\n\nPedro Lim has received a grade of 65 in Mathematics for Q1, which is below the passing mark of 75.\n\nPlease coordinate with Ms. Maria Santos at your earliest convenience.",
          "2025-01-22","08:00 AM",0,"S005",None,1),
     ])
 
@@ -388,7 +388,7 @@ def init_db():
     ])
 
     conn.commit(); conn.close()
-    print("[SmartGrade v2] Database seeded.")
+    print("[ TrackEd v2] Database seeded.")
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -423,7 +423,7 @@ def _check_and_send_alert(db, student_id, subject, quarter, score, teacher_name)
 
     parent = dict(parent); student = dict(student)
     body = (
-        f"This is an automated notification from SmartGrade.\n\n"
+        f"This is an automated notification from TrackEd.\n\n"
         f"{student['name']} has received a grade of {score} in {subject} for {quarter}, "
         f"which is below the passing mark of 75.\n\n"
         f"Please coordinate with {teacher_name} at your earliest convenience "
@@ -432,7 +432,7 @@ def _check_and_send_alert(db, student_id, subject, quarter, score, teacher_name)
     )
     db.execute(
         "INSERT INTO messages(from_role,from_id,from_name,to_role,to_id,subject,body,date,time,read,student_id,is_alert) VALUES(?,?,?,?,?,?,?,?,?,0,?,1)",
-        ("system","system","🔔 SmartGrade Alert","parent",parent["id"],
+        ("system","system","🔔 TrackEd Alert","parent",parent["id"],
          f"Academic Alert: {student['name']} — {subject} ({quarter})",
          body, today(), now_time(), student_id)
     )
@@ -657,15 +657,15 @@ def add_parent():
     added_by = g.user.get("teacher_id") or g.user["id"]
     db.execute("INSERT INTO parents(id,name,email,phone,child_id,added_by) VALUES(?,?,?,?,?,?)",
                (pid, name, email, data.get("phone",""), child_id, added_by))
-    # Auto-create parent login (default password: smartgrade2025)
-    default_pw = _hash("smartgrade2025")
+    # Auto-create parent login (default password: tracked2025)
+    default_pw = _hash("tracked2025")
     db.execute("INSERT INTO users(id,name,email,password,role,phone,child_id) VALUES(?,?,?,?,?,?,?)",
                (pid, name, email, default_pw, "parent", data.get("phone",""), child_id))
     if child_id:
         db.execute("UPDATE students SET parent_id=? WHERE id=?", (pid, child_id))
     db.commit()
     p = row_to_dict(db.execute("SELECT * FROM parents WHERE id=?", (pid,)).fetchone())
-    p["default_password"] = "smartgrade2025"
+    p["default_password"] = "tracked2025"
     return jsonify(p), 201
 
 @app.put("/api/parents/<pid>")
@@ -1056,10 +1056,10 @@ def dashboard():
 # ═══════════════════════════════════════════════════════════════════════════
 @app.get("/api/health")
 def health():
-    return jsonify({"status":"ok","app":"SmartGrade API v2","version":"2.0.0"})
+    return jsonify({"status":"ok","app":"TrackEd API v2","version":"2.0.0"})
 
 
 if __name__ == "__main__":
     init_db()
-    print("[SmartGrade v2] API → http://localhost:5000")
+    print("[TrackEd v2] API → http://localhost:5000")
     app.run(host="0.0.0.0", port=5000, debug=True)

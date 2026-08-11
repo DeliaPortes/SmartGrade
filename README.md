@@ -1,4 +1,4 @@
-# SmartGrade – Backend & API
+# TrackEd – Backend & API
 
 Academic Monitoring & Communication System for Polangui South Central School.
 
@@ -7,7 +7,7 @@ Academic Monitoring & Communication System for Polangui South Central School.
 ## 📁 Project Structure
 
 ```
-smartgrade/
+tracked/
 ├── backend/
 │   └── app.py            ← Flask REST API + SQLite DB
 ├── frontend/
@@ -48,19 +48,19 @@ python3 -m http.server 8080
 
 | Role    | Email                      | Password    |
 |---------|----------------------------|-------------|
-| Admin   | admin@smartgrade.edu       | password123 |
-| Teacher | teacher@smartgrade.edu     | password123 |
+| Admin   | admin@tracked.edu       | password123 |
+| Teacher | teacher@tracked.edu     | password123 |
 | Parent  | parent@gmail.com           | password123 |
 
 ---
 
 ## 🗄️ Database
 
-SQLite file: `backend/smartgrade.db` (auto-created on first run)
+SQLite file: `backend/tracked.db` (auto-created on first run)
 
 **Tables:** `users`, `students`, `teachers`, `parents`, `parent_children`, `classes`, `grades`, `attendance`, `messages`, `announcements`, `notifications`
 
-To reset the database: `rm backend/smartgrade.db` then restart.
+To reset the database: `rm backend/tracked.db` then restart.
 
 ---
 
@@ -170,7 +170,7 @@ Flask REST API  (port 5000)
     │
     │  SQL queries
     ▼
-SQLite Database (smartgrade.db)
+SQLite Database (tracked.db)
 ```
 
 **How the integration works:**

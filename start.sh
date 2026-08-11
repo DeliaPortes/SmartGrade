@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# SmartGrade v2 — One-command launcher
+# TrackEd v2 — One-command launcher
 # Usage: bash start.sh
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
 echo "╔══════════════════════════════════════════════════╗"
-echo "║          SmartGrade  v2.0                        ║"
+echo "║          TrackEd  v2.0                        ║"
 echo "║  Academic Monitoring & Communication System      ║"
 echo "║  Polangui South Central School                   ║"
 echo "╚══════════════════════════════════════════════════╝"
@@ -33,16 +33,16 @@ cd "$SCRIPT_DIR/frontend" && python3 -m http.server 8080 --bind 127.0.0.1 &
 FE_PID=$!
 
 echo ""
-echo "✅  SmartGrade v2 is running!"
+echo "✅  TrackEd v2 is running!"
 echo ""
 echo "   Open in browser → http://localhost:8080"
 echo ""
 echo "   ─────────────────────────────────────────────"
 echo "   CREDENTIALS:"
-echo "   🏫 Principal : principal@smartgrade.edu / password123"
-echo "   📚 Teacher 1 : teacher@smartgrade.edu   / password123"
-echo "   📚 Teacher 2 : preyes@smartgrade.edu    / password123"
-echo "   📚 Teacher 3 : clim@smartgrade.edu      / password123"
+echo "   🏫 Principal : principal@tracked.edu / password123"
+echo "   📚 Teacher 1 : teacher@tracked.edu   / password123"
+echo "   📚 Teacher 2 : preyes@tracked.edu    / password123"
+echo "   📚 Teacher 3 : clim@tracked.edu      / password123"
 echo "   👨‍👩‍👧 Parent    : parent@gmail.com        / password123"
 echo "   ─────────────────────────────────────────────"
 echo "   Teacher registration: click 'Register as Teacher'"

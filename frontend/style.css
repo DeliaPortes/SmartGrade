@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   SMARTGRADE v2 — style.css
+   TRACKED v2 — style.css
    ════════════════════════════════════════════════════════════════════════════ */
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -37,8 +37,8 @@ p{line-height:1.7}
 .ll-logo{display:flex;align-items:center;gap:8px;position:absolute;top:20px;left:20px;z-index:2}
 .ll-icon{width:50px;height:50px;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center}
 .ll-icon img{width:36px;height:36px;object-fit:contain;display:block;filter:brightness(0) invert(1) drop-shadow(0 0 1px #C79800)}
-.ll-brand{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px}
-.ll-brand em{color:#C79800;font-style:normal}
+.ll-brand{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;background:linear-gradient(135deg,#ffffff 0%,#C79800 60%,#fff8e1 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 2px 8px rgba(199,152,0,.45))}
+.ll-brand em{font-style:normal}
 
 /* ── Right panel — white background, card layout ── */
 .login-right{display:flex;align-items:center;justify-content:center;padding:40px;background:#fff}
@@ -118,6 +118,9 @@ p{line-height:1.7}
 .tb-urole{font-size:11px;color:rgba(255,255,255,.5);text-transform:capitalize}
 .tb-logout{padding:6px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s}
 .tb-logout:hover{background:rgba(255,255,255,.2)}
+
+/* Ranking class cards */
+.rank-class-card:hover{border-color:var(--blue)!important;transform:translateY(-2px);box-shadow:var(--shadow-md)}
 
 /* App body */
 .app-body{display:flex;flex:1;min-height:calc(100vh - 58px)}

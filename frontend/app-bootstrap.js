@@ -1,5 +1,5 @@
 /**
- * SmartGrade App Bootstrap — API integration patch
+ * TrackEd App Bootstrap — API integration patch
  * Loaded AFTER script.js and api.js.
  * Overrides doLogin / doLogout with API-backed versions,
  * then calls patchScriptWithAPI() to wire up all save/delete.
@@ -32,10 +32,10 @@ window.doLogin = async function() {
     // Sync entire state from the API
     STATE.currentUser = user;
     await syncStateFromAPI();
-    console.log("[SmartGrade] Logged in via API ✓");
+    console.log("[TrackEd] Logged in via API ✓");
 
   } catch (apiErr) {
-    console.warn("[SmartGrade] API login failed, trying local fallback:", apiErr.message);
+    console.warn("[TrackEd] API login failed, trying local fallback:", apiErr.message);
 
     // ── Fallback: local STATE.users (works when backend is offline) ─────────
     let foundUser = null;
@@ -46,15 +46,15 @@ window.doLogin = async function() {
       }
     }
     if (!foundUser) {
-      if (btn) { btn.textContent = "Sign In to SmartGrade →"; btn.disabled = false; }
+      if (btn) { btn.textContent = "Sign In to TrackEd →"; btn.disabled = false; }
       toast("Invalid email or password.", "error"); return;
     }
     user = foundUser;
     STATE.currentUser = user;
-    console.log("[SmartGrade] Logged in via local fallback ✓");
+    console.log("[TrackEd] Logged in via local fallback ✓");
   }
 
-  if (btn) { btn.textContent = "Sign In to SmartGrade →"; btn.disabled = false; }
+  if (btn) { btn.textContent = "Sign In to TrackEd →"; btn.disabled = false; }
 
   // ── Boot the app UI ───────────────────────────────────────────────────────
   document.getElementById("login-page").style.display = "none";
@@ -142,9 +142,9 @@ window.submitForgotPassword = async function() {
     updateUnreadBadge();
     patchScriptWithAPI();
     nav("dashboard");
-    console.log("[SmartGrade] Auto-login from saved token ✓");
+    console.log("[TrackEd] Auto-login from saved token ✓");
   } catch (e) {
-    console.warn("[SmartGrade] Saved token invalid, clearing:", e.message);
+    console.warn("[TrackEd] Saved token invalid, clearing:", e.message);
     api.logout();
   }
 })();

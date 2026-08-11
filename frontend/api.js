@@ -1,5 +1,5 @@
 /**
- * SmartGrade API Client
+ * TrackEd API Client
  * All communication with the Flask REST backend goes through this module.
  * Falls back gracefully if the backend is offline (uses STATE data).
  */
@@ -130,9 +130,9 @@ async function syncStateFromAPI() {
     if (announcements) STATE.announcements = _mapAnnouncements(announcements);
     if (notifications) STATE.notifications = _mapNotifications(notifications);
 
-    console.log("[SmartGrade] STATE synced from API ✓");
+    console.log("[TrackEd] STATE synced from API ✓");
   } catch (err) {
-    console.warn("[SmartGrade] API sync failed — using local STATE data:", err);
+    console.warn("[TrackEd] API sync failed — using local STATE data:", err);
   }
 }
 
@@ -531,5 +531,5 @@ function patchScriptWithAPI() {
     }
   };
 
-  console.log("[SmartGrade] API patches applied ✓");
+  console.log("[TrackEd] API patches applied ✓");
 }

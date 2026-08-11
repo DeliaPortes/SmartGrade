@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   SMARTGRADE v2 — script.js
-   All roles: principal (monitor-only), teacher/admin (full access)
+   TRACKED v2 — script.js
+   All roles: principal (monitor-only, messages-only-with-teacher), teacher/admin (full access)
    ════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── DepEd Subjects per Grade ─────────────────────────────────────────────── */
@@ -20,6 +20,12 @@ function getHonors(avg) {
   return null;
 }
 
+(function () {
+  emailjs.init({
+    publicKey: 'V2d1p81KvRc5qfwyZ',
+  });
+})();
+
 /* ════════════════════════════════════════════════════════════════════════════
    STATE
    ════════════════════════════════════════════════════════════════════════════ */
@@ -35,13 +41,13 @@ const STATE = {
   ],
 
   teachers: [
-    { id:'T001', name:'Ms. Maria Santos',  email:'teacher@smartgrade.edu', phone:'09171111111',
+    { id:'T001', name:'Ms. Maria Santos',  email:'teacher@tracked.edu', phone:'09171111111',
       grade:'Grade 1', section:'Sampaguita', subjects:'All Subjects', status:'active',
       joined:'2020-06-01', password:'password123' },
-    { id:'T002', name:'Mr. Pedro Reyes',   email:'preyes@smartgrade.edu',  phone:'09182222222',
+    { id:'T002', name:'Mr. Pedro Reyes',   email:'preyes@tracked.edu',  phone:'09182222222',
       grade:'Grade 2', section:'Rosal',      subjects:'All Subjects', status:'active',
       joined:'2019-06-01', password:'password123' },
-    { id:'T003', name:'Ms. Carmen Lim',    email:'clim@smartgrade.edu',    phone:'09193333333',
+    { id:'T003', name:'Ms. Carmen Lim',    email:'clim@tracked.edu',    phone:'09193333333',
       grade:'Grade 3', section:'Gumamela',   subjects:'All Subjects', status:'active',
       joined:'2021-06-01', password:'password123' },
   ],
@@ -100,6 +106,9 @@ const STATE = {
     S010:{ monthly:[{m:'June',p:20,a:0,l:0,t:20},{m:'July',p:22,a:0,l:0,t:22},{m:'Aug',p:21,a:0,l:0,t:21}], total:{present:63,absent:0,late:0,total:63} },
   },
 
+  /* FIX 3: per-day attendance records — attendanceDays[studentId][monthName][day] = 'P'|'A'|'L' */
+  attendanceDays: {},
+
   messages: [
     { id:1, fromRole:'parent', fromId:'P003', fromName:'Mr. Juan Dela Cruz', toRole:'teacher', toId:'T001',
       subject:'Concern about Math performance', body:"Good day Ma'am Santos. I would like to ask about my son Jose Jr.'s performance in Math this quarter.",
@@ -107,10 +116,22 @@ const STATE = {
     { id:2, fromRole:'teacher', fromId:'T001', fromName:'Ms. Maria Santos', toRole:'parent', toId:'P003',
       subject:'Re: Concern about Math performance', body:"Good day Mr. Dela Cruz! Jose Jr. is actually doing exceptionally well — he has a 95 in Math this quarter!",
       date:'2025-01-21', time:'10:15 AM', read:true, studentId:'S003', thread:1 },
-    { id:3, fromRole:'system', fromId:'system', fromName:'🔔 SmartGrade Alert', toRole:'parent', toId:'P005',
+    { id:3, fromRole:'system', fromId:'system', fromName:'🔔 TrackEd Alert', toRole:'parent', toId:'P005',
       subject:'Academic Alert: Pedro Lim — Mathematics', body:'This is an automated notification. Pedro Lim has received a failing grade of 65 in Mathematics for Q1. Immediate action may be needed. Please coordinate with the class teacher.',
       date:'2025-01-22', time:'08:00 AM', read:false, studentId:'S005', thread:null, isAlert:true },
+    { id:4, fromRole:'principal', fromId:'principal', fromName:'Principal Roberto Cruz', toRole:'teacher', toId:'T001',
+      subject:'Q3 Grade Submission Reminder', body:"Good morning Ms. Santos! Just a reminder that Q3 grade submission is due this Friday, January 31. Please make sure all grades are encoded in the system before end of office hours. Thank you!",
+      date:'2025-01-27', time:'08:15 AM', read:false, studentId:null, thread:null },
+    { id:5, fromRole:'teacher', fromId:'T001', fromName:'Ms. Maria Santos', toRole:'principal', toId:'principal',
+      subject:'Re: Q3 Grade Submission Reminder', body:"Good morning Principal Cruz! Noted, thank you for the reminder. I have already encoded most of the grades — I will finalize and submit everything by Thursday afternoon. Is there a specific format you'd like for the summary sheet?",
+      date:'2025-01-27', time:'09:42 AM', read:false, studentId:null, thread:4 },
+    { id:6, fromRole:'principal', fromId:'principal', fromName:'Principal Roberto Cruz', toRole:'teacher', toId:'T001',
+      subject:'Re: Q3 Grade Submission Reminder', body:"That's great, Ms. Santos! Please use the standard DepEd SF9 format. I'll send you the template via the bulletin. No rush — Thursday is perfectly fine. Keep up the good work!",
+      date:'2025-01-27', time:'10:05 AM', read:false, studentId:null, thread:4 },
   ],
+
+  /* FIX 8: archived message thread root IDs */
+  archivedMessages: [],
 
   announcements: [
     { id:1, title:'Q3 Report Cards Ready for Pickup', body:'Grade 1, 2, and 3 report cards for the 3rd quarter are now available at the Registrar\'s Office. Please bring a valid government-issued ID. Office hours: Mon–Fri, 8:00 AM – 5:00 PM.', date:'2025-01-25', audience:'all', author:'Principal Cruz', priority:'high', authorRole:'principal', pinned:true, category:'academic' },
@@ -134,11 +155,11 @@ const STATE = {
 
   /* Login credentials map */
   users: {
-    'teacher@smartgrade.edu': { role:'teacher', id:'T001', name:'Ms. Maria Santos',  email:'teacher@smartgrade.edu',  password:'password123', grade:'Grade 1', section:'Sampaguita', teacherId:'T001' },
-    'preyes@smartgrade.edu':  { role:'teacher', id:'T002', name:'Mr. Pedro Reyes',   email:'preyes@smartgrade.edu',   password:'password123', grade:'Grade 2', section:'Rosal',      teacherId:'T002' },
-    'clim@smartgrade.edu':    { role:'teacher', id:'T003', name:'Ms. Carmen Lim',    email:'clim@smartgrade.edu',     password:'password123', grade:'Grade 3', section:'Gumamela',   teacherId:'T003' },
+    'teacher@tracked.edu': { role:'teacher', id:'T001', name:'Ms. Maria Santos',  email:'teacher@tracked.edu',  password:'password123', grade:'Grade 1', section:'Sampaguita', teacherId:'T001' },
+    'preyes@tracked.edu':  { role:'teacher', id:'T002', name:'Mr. Pedro Reyes',   email:'preyes@tracked.edu',   password:'password123', grade:'Grade 2', section:'Rosal',      teacherId:'T002' },
+    'clim@tracked.edu':    { role:'teacher', id:'T003', name:'Ms. Carmen Lim',    email:'clim@tracked.edu',     password:'password123', grade:'Grade 3', section:'Gumamela',   teacherId:'T003' },
     'parent@gmail.com':       { role:'parent',  id:'P003', name:'Mr. Juan Dela Cruz', email:'parent@gmail.com',        password:'password123', childId:'S003' },
-    'principal@smartgrade.edu':{ role:'principal', id:'principal', name:'Principal Roberto Cruz', email:'principal@smartgrade.edu', password:'password123', school:'Polangui South Central School' },
+    'principal@tracked.edu':{ role:'principal', id:'principal', name:'Principal Roberto Cruz', email:'principal@tracked.edu', password:'password123', school:'Polangui South Central School' },
   },
 
   nextMsgId: 10,
@@ -146,6 +167,46 @@ const STATE = {
   nextStudentId: 11,
   nextParentId: 11,
 };
+
+function sendFailingGradeEmail(parentEmail, parentName, studentName, subject, score, quarter, teacherName) {
+  const templateParams = {
+    parent_name:  parentName,
+    student_name: studentName,
+    subject:      subject,
+    score:        score,
+    quarter:      quarter,
+    teacher_name: teacherName,
+  };
+
+  emailjs.send('service_g3io8sl', 'template_f1rokml', templateParams)
+    .then(() => {
+      console.log(`✅ Failing grade alert email sent to ${parentEmail}`);
+    })
+    .catch((error) => {
+      console.error('❌ EmailJS error (failing grade):', error);
+    });
+}
+
+/**
+ * Magpadala ng New Message notification email
+ * Tinatawag sa loob ng sendCompose() at reply handler
+ */
+function sendMessageNotificationEmail(recipientEmail, recipientName, senderName, subject, messageBody) {
+  const templateParams = {
+    recipient_name: recipientName,
+    sender_name:    senderName,
+    subject:        subject,
+    message_body:   messageBody.slice(0, 200) + (messageBody.length > 200 ? '...' : ''),
+  };
+
+  emailjs.send('service_g3io8sl', 'template_bgb70e3', templateParams)
+    .then(() => {
+      console.log(`✅ Message notification email sent to ${recipientEmail}`);
+    })
+    .catch((error) => {
+      console.error('❌ EmailJS error (message notification):', error);
+    });
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    HELPERS
@@ -197,9 +258,10 @@ function checkAndSendFailingAlerts(studentId, subject, quarter, score, teacherNa
   if (score < 75 && score > 0) {
     const student = STATE.students.find(s => s.id === studentId);
     if (!student) return false;
-    // Only send to linked parent — never to admin or principal
+
     const parent = STATE.parents.find(p => p.childId === studentId);
     if (!parent) return false;
+
     // Check if alert already sent for this student/subject/quarter
     const alreadySent = STATE.messages.find(m =>
       m.isAlert && m.studentId === studentId &&
@@ -207,26 +269,37 @@ function checkAndSendFailingAlerts(studentId, subject, quarter, score, teacherNa
     );
     if (alreadySent) return false;
 
+    // In-app alert message (existing behavior)
     const alertMsg = {
       id: STATE.nextMsgId++,
-      fromRole: 'system', fromId: 'system', fromName: '🔔 SmartGrade Alert',
-      toRole: 'parent',   // always parent only
-      toId: parent.id,    // specific parent ID
+      fromRole: 'system', fromId: 'system', fromName: '🔔 TrackEd Alert',
+      toRole: 'parent',
+      toId: parent.id,
       subject: `Academic Alert: ${student.name} — ${subject} (${quarter})`,
-      body: `This is an automated notification from SmartGrade.\n\n${student.name} has received a grade of ${score} in ${subject} for ${quarter}, which is below the passing mark of 75.\n\nPlease coordinate with ${teacherName || 'the class teacher'} at your earliest convenience to discuss how to support your child's academic performance.\n\nThank you for your continued support.`,
+      body: `This is an automated notification from TrackEd.\n\n${student.name} has received a grade of ${score} in ${subject} for ${quarter}, which is below the passing mark of 75.\n\nPlease coordinate with ${teacherName || 'the class teacher'} at your earliest convenience to discuss how to support your child's academic performance.\n\nThank you for your continued support.`,
       date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' }),
+      time: new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }),
       read: false, studentId, thread: null, isAlert: true,
     };
     STATE.messages.unshift(alertMsg);
 
-    // Notification only for the teacher — not admin
+    sendFailingGradeEmail(
+      parent.email,
+      parent.name,
+      student.name,
+      subject,
+      score,
+      quarter,
+      teacherName || 'the class teacher'
+    );
+
     STATE.notifications.unshift({
       id: STATE.notifications.length + 1,
       title: `Alert Sent: ${student.name}`,
-      body: `${student.name} scored ${score} in ${subject} (${quarter}). Parent notified automatically.`,
+      body: `${student.name} scored ${score} in ${subject} (${quarter}). Parent notified via email automatically.`,
       time: 'just now', type: 'alert', read: false, role: 'teacher',
     });
+
     return true;
   }
   return false;
@@ -305,8 +378,25 @@ function setTopbarAvatar(user) {
     av.textContent = '';
   } else { av.textContent = ini(user.name); }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FIX 7: NOTIFICATIONS — click navigates to relevant page (Facebook-style)
+   ════════════════════════════════════════════════════════════════════════════ */
+function getNotifPage(n) {
+  const t = (n.title || '').toLowerCase();
+  const b = (n.body  || '').toLowerCase();
+  if (t.includes('grade') || t.includes('submission') || b.includes('grade')) return 'grades';
+  if (t.includes('alert') || t.includes('failing') || b.includes('failing')) return 'messages';
+  if (t.includes('message') || b.includes('message')) return 'messages';
+  if (t.includes('attendance') || b.includes('attendance')) return 'attendance';
+  if (t.includes('announcement') || b.includes('announcement')) return 'announcements';
+  if (t.includes('approval') || b.includes('approval')) return 'approvals';
+  if (t.includes('ranking') || b.includes('ranking')) return 'ranking';
+  if (t.includes('report') || b.includes('report')) return 'reports';
+  return 'dashboard';
+}
+
 function openNotifications() {
-  // Remove existing dropdown if open (toggle)
   const existing = document.getElementById('notif-panel');
   if (existing) { existing.remove(); return; }
 
@@ -315,31 +405,36 @@ function openNotifications() {
 
   const panel = document.createElement('div');
   panel.id = 'notif-panel';
-  panel.style.cssText = `position:fixed;top:58px;right:12px;width:340px;max-height:420px;overflow-y:auto;background:#fff;border-radius:var(--rl);border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:600`;
+  panel.style.cssText = `position:fixed;top:58px;right:12px;width:360px;max-height:460px;overflow-y:auto;background:#fff;border-radius:var(--rl);border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:600`;
 
   const typeIcon = { high:'🔴', alert:'⚠️', normal:'🔔' };
   panel.innerHTML = `
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
       <span style="font-weight:700;font-size:13.5px">Notifications</span>
       <button onclick="markAllNotifsRead()" style="font-size:11.5px;color:var(--green);font-weight:600;border:none;background:none;cursor:pointer">Mark all read</button>
     </div>
-    ${myNotifs.length === 0 ? `<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">No notifications</div>` :
-      myNotifs.map(n => `
-        <div data-notif-id="${n.id}" style="padding:12px 16px;border-bottom:1px solid var(--border);background:${n.read?'#fff':'var(--green-l)'};cursor:pointer" onclick="markNotifRead(${n.id})">
+    ${myNotifs.length === 0 ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:13px">No notifications</div>` :
+      myNotifs.map(n => {
+        const page = getNotifPage(n);
+        return `
+        <div data-notif-id="${n.id}" style="padding:12px 16px;border-bottom:1px solid var(--border);background:${n.read?'#fff':'var(--green-l)'};cursor:pointer;transition:background .15s" onclick="notifClick(${n.id})">
           <div style="display:flex;align-items:flex-start;gap:10px">
             <span style="font-size:16px;flex-shrink:0">${typeIcon[n.type]||'🔔'}</span>
             <div style="flex:1">
               <div class="notif-title" style="font-size:13px;font-weight:${n.read?'500':'700'};color:var(--text)">${n.title}</div>
               <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">${n.body}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">${n.time}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:6px">
+                ${n.time}
+                <span style="background:var(--surface2);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;color:var(--text2)">→ ${page}</span>
+              </div>
             </div>
             ${!n.read ? `<div class="notif-unread-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:4px"></div>` : ''}
           </div>
-        </div>`).join('')}`;
+        </div>`;
+      }).join('')}`;
 
   document.body.appendChild(panel);
 
-  // Close when clicking outside
   setTimeout(() => {
     document.addEventListener('click', function closePanel(e) {
       if (!panel.contains(e.target) && !e.target.closest('.tb-notif-btn')) {
@@ -350,11 +445,19 @@ function openNotifications() {
   }, 10);
 }
 
+window.notifClick = function(id) {
+  const n = STATE.notifications.find(x => x.id === id);
+  if (!n) return;
+  n.read = true;
+  updateUnreadBadge();
+  document.getElementById('notif-panel')?.remove();
+  nav(getNotifPage(n));
+};
+
 function markNotifRead(id) {
   const n = STATE.notifications.find(x => x.id === id);
   if (n) n.read = true;
   updateUnreadBadge();
-  // Refresh just the clicked item's background without reopening
   const panel = document.getElementById('notif-panel');
   if (panel) {
     const items = panel.querySelectorAll('[data-notif-id]');
@@ -402,7 +505,6 @@ function doLogout() {
   document.getElementById('login-page').style.display = 'grid';
   document.getElementById('l-email').value = '';
   document.getElementById('l-pass').value  = '';
-  // Show register tab on logout if needed
   showLoginTab('login');
 }
 function togglePasswordVisibility() {
@@ -489,7 +591,7 @@ const navMenus = {
   ],
   parent:[
     { s:'Overview' }, { id:'dashboard', l:'Dashboard', ic:'home' },
-    { s:'My Child' }, { id:'grades', l:'Academic Record', ic:'grade' }, { id:'attendance', l:'Attendance', ic:'cal' }, { id:'reports', l:'Reports', ic:'report' },
+    { s:'My Child' }, { id:'grades', l:'Academic Record', ic:'grade' }, { id:'attendance', l:'Attendance', ic:'cal' },
     { s:'Communication' }, { id:'messages', l:'Messages', ic:'msg' }, { id:'announcements', l:'Announcements', ic:'bell' },
   ],
   principal:[
@@ -519,17 +621,15 @@ function nav(page) {
   document.getElementById('nl-'+page)?.classList.add('active');
   const c = document.getElementById('content');
   c.innerHTML = '';
-  // Reset announcement filter on each page navigation
   if (page !== 'announcements') window._annFilterCat = 'all';
   const role = STATE.currentUser.role;
   const pages = {
     teacher:   { dashboard:pgTeacherDash,   students:pgStudents, grades:pgGrades, attendance:pgAttendance, messages:pgMessages, announcements:pgAnnouncements, reports:pgReports, ranking:pgRanking, parents:pgParentsTeacher, profile:pgProfile },
-    parent:    { dashboard:pgParentDash,     grades:pgGrades, attendance:pgAttendance, messages:pgMessages, announcements:pgAnnouncements, reports:pgReports, profile:pgProfile },
+    parent:    { dashboard:pgParentDash,     grades:pgGrades, attendance:pgAttendance, messages:pgMessages, announcements:pgAnnouncements, profile:pgProfile },
     principal: { dashboard:pgPrincipalDash,  students:pgStudents, teachers:pgTeachers, ranking:pgRanking, grades:pgGrades, attendance:pgAttendance, approvals:pgApprovals, classes:pgClasses, messages:pgMessages, announcements:pgAnnouncements, profile:pgProfile },
   };
   (pages[role]?.[page] || (() => { c.innerHTML = '<div class="empty-state"><div class="es-icon">🔍</div><div class="es-title">Page not found</div></div>'; }))(c);
 }
-
 /* ════════════════════════════════════════════════════════════════════════════
    TEACHER DASHBOARD
    ════════════════════════════════════════════════════════════════════════════ */
@@ -818,7 +918,7 @@ function pgStudents(el) {
             <td><span class="badge ${gbadge(ov)}">${ov}</span></td>
             <td>${honors ? `<span style="color:var(--gold);font-size:12px;font-weight:600">${honors.icon} ${honors.label}</span>` : '<span class="txs tmm">—</span>'}</td>
             <td><span class="${attRate>=90?'badge bg-green':attRate>=75?'badge bg-amber':'badge bg-red'}">${attRate}%</span></td>
-            <td><span class="badge ${s.status==='active'?'bg-green':'bg-gray'}">${s.status}</span></td>
+            <td><span class="badge ${s.status==='active'?'bg-green':'bg-red'}">${s.status==='dropout'?'Dropout':'Active'}</span></td>
             <td><div class="flex gap-6">
               <button class="btn btn-secondary btn-xs" onclick="viewStudentModal('${s.id}')">View</button>
               ${isTeacher ? `<button class="btn btn-secondary btn-xs" onclick="openEditStudentModal('${s.id}')">Edit</button>
@@ -843,7 +943,10 @@ function openAddStudentModal() {
       <div class="fg"><label>Grade*</label><select id="sf-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option ${g===STATE.currentUser.grade?'selected':''}>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section*</label><input id="sf-sec" value="${STATE.currentUser.section||''}"></div>
       <div class="fg"><label>Gender*</label><select id="sf-gen"><option value="F">Female</option><option value="M">Male</option></select></div>
-      <div class="fg"><label>Status</label><select id="sf-st"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+      <div class="fg"><label>Status</label><select id="sf-st">
+        <option value="active">Active</option>
+        <option value="dropout">Dropout</option>
+      </select></div>
       <div class="fg"><label>Contact Number*</label><input id="sf-con" placeholder="09XXXXXXXXX"></div>
     </div>
   </div>
@@ -875,7 +978,10 @@ function openEditStudentModal(id) {
       <div class="fg"><label>Grade*</label><select id="ef-gr">${['Grade 1','Grade 2','Grade 3'].map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('')}</select></div>
       <div class="fg"><label>Section</label><input id="ef-sec" value="${s.section}"></div>
       <div class="fg"><label>Gender</label><select id="ef-gen"><option value="F" ${s.gender==='F'?'selected':''}>Female</option><option value="M" ${s.gender==='M'?'selected':''}>Male</option></select></div>
-      <div class="fg"><label>Status</label><select id="ef-st"><option value="active" ${s.status==='active'?'selected':''}>Active</option><option value="inactive">Inactive</option></select></div>
+      <div class="fg"><label>Status</label><select id="ef-st">
+        <option value="active" ${s.status==='active'?'selected':''}>Active</option>
+        <option value="dropout" ${s.status==='dropout'?'selected':''}>Dropout</option>
+      </select></div>
       <div class="fg" style="grid-column:span 2"><label>Contact</label><input id="ef-con" value="${s.contact}"></div>
     </div>
   </div>
@@ -908,7 +1014,7 @@ function viewStudentModal(id) {
       <div class="ts tm">${s.grade} – ${s.section} · ${s.gender==='F'?'Female':'Male'}</div>
       <div class="txs tmm mt-4">LRN: <strong>${s.lrn||'Not set'}</strong> · ID: ${s.id}</div>
       ${honors?`<span style="color:var(--gold);font-size:12px;font-weight:700">${honors.label}</span>`:''}
-      <div class="flex gap-8 mt-8"><span class="badge ${s.status==='active'?'bg-green':'bg-gray'}">${s.status}</span><span class="badge ${gbadge(ov)}">Average: ${ov}</span></div></div>
+      <div class="flex gap-8 mt-8"><span class="badge ${s.status==='active'?'bg-green':'bg-red'}">${s.status==='dropout'?'Dropout':'Active'}</span><span class="badge ${gbadge(ov)}">Average: ${ov}</span></div></div>
     </div>
     ${parent?`<div class="mb-14 p-12" style="background:var(--bg);border-radius:9px"><div class="txs tmm fw7 mb-4">Parent/Guardian</div><div class="fw6">${parent.name}</div><div class="txs tm">${parent.email} · ${parent.phone}</div></div>`:'<div class="mb-14 p-12" style="background:var(--amber-l);border-radius:9px"><div class="txs fw6" style="color:var(--amber)">⚠ No parent linked. Add a parent in Manage Parents.</div></div>'}
     <div class="fw7 ts mb-8">Academic Performance (Subject Averages)</div>
@@ -930,7 +1036,6 @@ function exportStudents() {
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='students.csv'; a.click();
   toast('Exported!');
 }
-
 /* ════════════════════════════════════════════════════════════════════════════
    GRADES PAGE — with per-subject quarter entry & auto-alert
    ════════════════════════════════════════════════════════════════════════════ */
@@ -996,7 +1101,6 @@ function pgGrades(el) {
     if (!STATE.grades[sid][sub]) STATE.grades[sid][sub]=[0,0,0,0];
     STATE.grades[sid][sub][qi]=v;
     changed[key]=true; inp.classList.add('changed');
-    // Auto-alert check
     if (v < 75 && v > 0) {
       const sent = checkAndSendFailingAlerts(sid, sub, QUARTERS[qi], v, STATE.currentUser.name);
       if (sent) { toast(`⚠️ Alert sent to parent: ${STATE.students.find(s=>s.id===sid)?.name} failed ${sub}`, 'alert'); updateUnreadBadge(); buildSidebar(STATE.currentUser.role); }
@@ -1040,7 +1144,6 @@ function pgReportCard(el) {
     const ov = studentAverage(s.id);
     const honors = getHonors(ov);
 
-    // Monthly attendance from monthly array
     const months = at ? at.monthly : [];
     const totalAtt = at ? at.total : {present:0,absent:0,late:0,total:0};
 
@@ -1056,9 +1159,7 @@ function pgReportCard(el) {
     </div>
 
     <div id="rc-print-area">
-    <!-- Report Card Wrapper -->
     <div class="rc-card">
-      <!-- Header -->
       <div class="rc-header">
         <div class="rc-logo-area">
           <div style="width:60px;height:60px;border-radius:50%;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:24px">🏫</div>
@@ -1076,7 +1177,6 @@ function pgReportCard(el) {
       </div>
       <div class="rc-title-bar">SCHOOL REPORT CARD (SF9)</div>
 
-      <!-- Learner Info -->
       <div class="rc-section-title">LEARNER INFORMATION</div>
       <div class="rc-info-grid">
         <div class="rc-info-row"><span class="rc-label">LRN / ID:</span><span class="rc-value fw7">${s.id}</span></div>
@@ -1089,7 +1189,6 @@ function pgReportCard(el) {
         <div class="rc-info-row"><span class="rc-label">Parent/Guardian:</span><span class="rc-value">${parent?.name||'Not linked'}</span></div>
       </div>
 
-      <!-- Grades Table -->
       <div class="rc-section-title" style="margin-top:16px">LEARNER'S ACADEMIC PROGRESS REPORT</div>
       <table class="rc-table">
         <thead>
@@ -1122,7 +1221,6 @@ function pgReportCard(el) {
 
       ${honors ? `<div class="rc-honors-badge"><span style="font-size:20px">${honors.icon}</span> <strong>${honors.label}</strong> — General Average: ${ov}</div>` : ''}
 
-      <!-- Attendance Table -->
       <div class="rc-section-title" style="margin-top:16px">ATTENDANCE REPORT</div>
       <table class="rc-table rc-att-table">
         <thead><tr><th>Month</th><th>Days Present</th><th>Days Absent</th><th>Days Late</th><th>School Days</th></tr></thead>
@@ -1144,13 +1242,11 @@ function pgReportCard(el) {
         </tbody>
       </table>
 
-      <!-- Grading Scale -->
       <div class="rc-section-title" style="margin-top:16px">GRADING SCALE</div>
       <div class="rc-scale-grid">
         ${[['90–100','Outstanding'],['85–89','Very Satisfactory'],['80–84','Satisfactory'],['75–79','Fairly Satisfactory'],['Below 75','Did Not Meet Expectations']].map(([r,d])=>`<div class="rc-scale-item"><span class="rc-scale-range">${r}</span><span class="rc-scale-desc">${d}</span></div>`).join('')}
       </div>
 
-      <!-- Signatures -->
       <div class="rc-sig-row">
         <div class="rc-sig-block"><div class="rc-sig-line"></div><div class="rc-sig-name">${teacher?.name||'Class Adviser'}</div><div class="rc-sig-role">Class Adviser / Teacher</div></div>
         <div class="rc-sig-block"><div class="rc-sig-line"></div><div class="rc-sig-name">Principal Roberto Cruz</div><div class="rc-sig-role">School Principal</div></div>
@@ -1159,7 +1255,6 @@ function pgReportCard(el) {
     </div>
     </div>`;
 
-    // re-attach select listener
     document.getElementById('rc-student-sel')?.addEventListener('change', e => { selStudentId=e.target.value; renderRC(); });
   }
 
@@ -1204,31 +1299,128 @@ function pgReportCard(el) {
    ════════════════════════════════════════════════════════════════════════════ */
 function pgRanking(el) {
   const role = STATE.currentUser.role;
-  let viewMode = 'section'; // 'section' | 'grade'
-  let selGrade = 'Grade 1';
-  let selSection = STATE.classes[0]?.section || 'Sampaguita';
 
-  function render() {
-    const grades = ['Grade 1','Grade 2','Grade 3'];
-    const sectionsList = [...new Set(STATE.classes.map(c=>`${c.grade}|${c.section}`))];
+  if (role === 'teacher') {
+    const u = STATE.currentUser;
+    const students = STATE.students.filter(s=>s.teacherId===u.teacherId&&s.status==='active');
+    renderClassRanking(el, students, `${u.grade} – ${u.section}`, false);
+    return;
+  }
 
-    let students = STATE.students.filter(s=>s.status==='active');
-    let title = '';
-    if (viewMode === 'section') {
-      const cls = STATE.classes.find(c=>c.section===selSection);
-      students = students.filter(s=>s.section===selSection);
-      title = `${cls?.grade||''} – ${selSection}`;
-    } else {
-      students = students.filter(s=>s.grade===selGrade);
-      title = selGrade;
-    }
+  renderClassCards(el);
 
-    // If teacher, restrict to own class (unless principal)
-    if (role === 'teacher') {
-      students = students.filter(s=>s.teacherId===STATE.currentUser.teacherId);
-      viewMode = 'section'; selSection = STATE.currentUser.section; title = `${STATE.currentUser.grade} – ${STATE.currentUser.section}`;
-    }
+  function renderClassCards(el) {
+    const allActive = STATE.students.filter(s=>s.status==='active');
+    const schoolHonors = {highest:0, high:0, honors:0};
+    allActive.forEach(s=>{
+      const a=studentAverage(s.id);
+      if(a>=98) schoolHonors.highest++;
+      else if(a>=95) schoolHonors.high++;
+      else if(a>=90) schoolHonors.honors++;
+    });
 
+    el.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="page-title">School Ranking 🏆</div>
+        <div class="page-sub">Click on a class to view its full rankings</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px">
+      <div class="card" style="background:linear-gradient(135deg,#FFF4C2,#fff);border-color:var(--gold);text-align:center">
+        <div style="font-size:28px">🏆</div>
+        <div style="font-size:13px;font-weight:800;color:var(--gold);margin:6px 0">With Highest Honors</div>
+        <div style="font-size:32px;font-weight:900;color:var(--text)">${schoolHonors.highest}</div>
+        <div class="txs tmm">Average 98–100 · School-wide</div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#E8F0FF,#fff);border-color:var(--blue);text-align:center">
+        <div style="font-size:28px">🥇</div>
+        <div style="font-size:13px;font-weight:800;color:var(--blue);margin:6px 0">With High Honors</div>
+        <div style="font-size:32px;font-weight:900;color:var(--text)">${schoolHonors.high}</div>
+        <div class="txs tmm">Average 95–97 · School-wide</div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,var(--green-l),#fff);border-color:var(--green);text-align:center">
+        <div style="font-size:28px">🥈</div>
+        <div style="font-size:13px;font-weight:800;color:var(--green);margin:6px 0">With Honors</div>
+        <div style="font-size:32px;font-weight:900;color:var(--text)">${schoolHonors.honors}</div>
+        <div class="txs tmm">Average 90–94 · School-wide</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+      ${STATE.classes.map(c=>{
+        const teacher = STATE.teachers.find(t=>t.id===c.teacherId);
+        const clsStudents = allActive.filter(s=>s.grade===c.grade&&s.section===c.section);
+        const avgs = clsStudents.map(s=>studentAverage(s.id)).filter(v=>v>0);
+        const clsAvg = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : 0;
+        const top3 = clsStudents.map(s=>({...s,avg:studentAverage(s.id)})).sort((a,b)=>b.avg-a.avg).slice(0,3);
+        const honorCount = clsStudents.filter(s=>getHonors(studentAverage(s.id))).length;
+        const gradeColors = {'Grade 1':'var(--blue)','Grade 2':'var(--purple)','Grade 3':'var(--green)'};
+        const gradeBgs = {'Grade 1':'var(--blue-l)','Grade 2':'var(--purple-l)','Grade 3':'var(--green-l)'};
+        const gc = gradeColors[c.grade]||'var(--blue)';
+        const gb = gradeBgs[c.grade]||'var(--blue-l)';
+        return `
+        <div class="card rank-class-card" onclick="viewClassRanking('${c.grade}','${c.section}')"
+          style="cursor:pointer;border:2px solid var(--border);transition:all .2s;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:5px;background:${gc};border-radius:14px 14px 0 0"></div>
+          <div style="padding-top:6px">
+            <div class="flex aic gap-12 mb-14">
+              <div style="width:52px;height:52px;background:${gb};border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏫</div>
+              <div class="f1">
+                <div style="font-size:17px;font-weight:800;color:${gc}">${c.grade}</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text)">${c.section}</div>
+                <div class="txs tmm">SY ${c.year}</div>
+              </div>
+              <div style="background:${gb};border-radius:9px;padding:8px 12px;text-align:center;flex-shrink:0">
+                <div style="font-size:22px;font-weight:900;color:${gc}">${clsAvg||'–'}</div>
+                <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase">Class Avg</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;text-align:center">
+              <div style="padding:8px;background:var(--bg);border-radius:8px">
+                <div style="font-size:18px;font-weight:800;color:var(--text)">${clsStudents.length}</div>
+                <div style="font-size:10px;color:var(--text3)">Students</div>
+              </div>
+              <div style="padding:8px;background:var(--gold-l);border-radius:8px">
+                <div style="font-size:18px;font-weight:800;color:var(--gold)">${honorCount}</div>
+                <div style="font-size:10px;color:var(--text3)">Honor Students</div>
+              </div>
+              <div style="padding:8px;background:var(--bg);border-radius:8px">
+                <div style="font-size:18px;font-weight:800;color:${clsAvg>=85?'var(--green)':clsAvg>=75?'var(--amber)':'var(--red)'}">${clsStudents.filter(s=>studentAverage(s.id)<75&&studentAverage(s.id)>0).length}</div>
+                <div style="font-size:10px;color:var(--text3)">Need Attention</div>
+              </div>
+            </div>
+
+            ${top3.length>0?`
+            <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px">Top Students</div>
+              ${top3.map((s,i)=>`
+              <div class="flex aic gap-8" style="padding:4px 0">
+                <div style="width:20px;height:20px;border-radius:50%;background:${i===0?'#C79800':i===1?'#C0C0C0':'#CD7F32'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">${i+1}</div>
+                <div class="f1 fw6 ts" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+                <span class="badge ${gbadge(s.avg)}" style="font-size:11px">${s.avg}</span>
+              </div>`).join('')}
+            </div>`:''}
+
+            <div class="flex aic gap-8" style="border-top:1px solid var(--border);padding-top:10px">
+              <div class="av av-28 av-blue" style="flex-shrink:0">${teacher?ini(teacher.name):'?'}</div>
+              <div class="f1 txs tm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${teacher?teacher.name:'No teacher assigned'}</div>
+              <button class="btn btn-primary btn-xs" style="flex-shrink:0">View Rankings →</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    window.viewClassRanking = function(grade, section) {
+      const clsStudents = allActive.filter(s=>s.grade===grade&&s.section===section);
+      renderClassRanking(el, clsStudents, `${grade} – ${section}`, true);
+    };
+  }
+
+  function renderClassRanking(el, students, title, showBack) {
     const ranked = students.map(s=>({ ...s, avg: studentAverage(s.id) })).sort((a,b)=>b.avg-a.avg);
     const highestHonors = ranked.filter(s=>s.avg>=98);
     const highHonors    = ranked.filter(s=>s.avg>=95&&s.avg<98);
@@ -1236,19 +1428,13 @@ function pgRanking(el) {
 
     el.innerHTML = `
     <div class="page-head">
-      <div><div class="page-title">Class Ranking 🏆</div><div class="page-sub">${title} — ${ranked.length} students</div></div>
-      ${role==='principal'?`<div class="page-actions">
-        <select class="btn btn-secondary" onchange="viewMode=this.value;render()">
-          <option value="section" ${viewMode==='section'?'selected':''}>By Section</option>
-          <option value="grade"   ${viewMode==='grade'  ?'selected':''}>By Grade Level</option>
-        </select>
-        ${viewMode==='section'
-          ? `<select class="btn btn-secondary" onchange="selSection=this.value;render()">${[...new Set(STATE.classes.map(c=>c.section))].map(s=>`<option ${s===selSection?'selected':''}>${s}</option>`).join('')}</select>`
-          : `<select class="btn btn-secondary" onchange="selGrade=this.value;render()">${grades.map(g=>`<option ${g===selGrade?'selected':''}>${g}</option>`).join('')}</select>`}
-      </div>`:''}
+      <div>
+        ${showBack?`<button class="btn btn-secondary btn-sm mb-8" onclick="pgRanking(document.getElementById('content'))" style="display:flex;align-items:center;gap:6px">← Back to All Classes</button>`:''}
+        <div class="page-title">Class Ranking 🏆</div>
+        <div class="page-sub">${title} — ${ranked.length} students</div>
+      </div>
     </div>
 
-    <!-- Honors Summary Cards -->
     ${highestHonors.length+highHonors.length+honors.length > 0 ? `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
       <div class="card" style="background:linear-gradient(135deg,#FFF4C2,#fff);border-color:var(--gold);text-align:center">
@@ -1274,7 +1460,6 @@ function pgRanking(el) {
       </div>
     </div>` : ''}
 
-    <!-- Full Rankings Table -->
     <div class="tbl-wrap">
       <div class="tbl-toolbar"><span class="ts fw7">Complete Rankings — ${title}</span></div>
       <table>
@@ -1296,228 +1481,244 @@ function pgRanking(el) {
         </tbody>
       </table>
     </div>`;
-    // make viewMode/selGrade/selSection available to inline onchange
-    window._rankViewMode = viewMode;
   }
-  window.render = render;
-  render();
 }
-
 /* ════════════════════════════════════════════════════════════════════════════
-   ATTENDANCE PAGE — with calendar grid for parent, mark-today for teacher
+   ATTENDANCE PAGE — FIX 3: per-day calendar tracking (not just monthly totals)
    ════════════════════════════════════════════════════════════════════════════ */
 function pgAttendance(el) {
-  const role=STATE.currentUser.role, isParent=role==='parent', isPrincipal=role==='principal', isTeacher=role==='teacher';
-  const monthNames=['June','July','August','September','October','November','December','January','February','March','April','May'];
-  // Month start days (0=Sun) and day counts for SY 2024-2025
-  const monthMeta=[
-    {days:30,start:6},{days:31,start:1},{days:31,start:4},{days:30,start:0},
-    {days:31,start:2},{days:30,start:5},{days:31,start:0},{days:31,start:3},
-    {days:28,start:6},{days:31,start:6},{days:30,start:2},{days:31,start:4}
+  const role = STATE.currentUser.role;
+  const isParent = role === 'parent', isPrincipal = role === 'principal', isTeacher = role === 'teacher';
+
+  const MONTHS = [
+    { name:'June 2024',     days:30, start:6, schoolDays:[3,4,5,6,7,10,11,12,13,14,17,18,19,20,21,24,25,26,27,28] },
+    { name:'July 2024',     days:31, start:1, schoolDays:[1,2,3,4,5,8,9,10,11,12,15,16,17,18,19,22,23,24,25,26,29,30,31] },
+    { name:'August 2024',   days:31, start:4, schoolDays:[1,2,5,6,7,8,9,12,13,14,15,16,19,20,21,22,23,26,27,28,29,30] },
+    { name:'September 2024',days:30, start:0, schoolDays:[2,3,4,5,6,9,10,11,12,13,16,17,18,19,20,23,24,25,26,27,30] },
+    { name:'October 2024',  days:31, start:2, schoolDays:[1,2,3,4,7,8,9,10,11,14,15,16,17,18,21,22,23,24,25,28,29,30,31] },
+    { name:'November 2024', days:30, start:5, schoolDays:[4,5,6,7,8,11,12,13,14,15,18,19,20,21,22,25,26,27,28,29] },
+    { name:'December 2024', days:31, start:0, schoolDays:[2,3,4,5,6,9,10,11,12,13,16,17,18,19,20] },
+    { name:'January 2025',  days:31, start:3, schoolDays:[6,7,8,9,10,13,14,15,16,17,20,21,22,23,24,27,28,29,30,31] },
+    { name:'February 2025', days:28, start:6, schoolDays:[3,4,5,6,7,10,11,12,13,14,17,18,19,20,21,24,25,26,27,28] },
+    { name:'March 2025',    days:31, start:6, schoolDays:[3,4,5,6,7,10,11,12,13,14,17,18,19,20,21,24,25,26,27,28,31] },
   ];
-  let selMonth=0, todayRecords={};
+
+  let selMonth = 0, todayRecords = {}, selDay = null;
+  const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   function getStudents() {
-    if(isParent) return STATE.students.filter(s=>s.id===STATE.currentUser.childId);
-    if(isPrincipal) return STATE.students.filter(s=>STATE.attendance[s.id]);
-    return STATE.students.filter(s=>s.teacherId===STATE.currentUser.teacherId&&s.status==='active');
+    if (isParent)    return STATE.students.filter(s => s.id === STATE.currentUser.childId);
+    if (isPrincipal) return STATE.students.filter(s => STATE.attendance[s.id]);
+    return STATE.students.filter(s => s.teacherId === STATE.currentUser.teacherId && s.status === 'active');
   }
 
-  // Build a simple calendar for parent view
-  function buildCalendar(sid, monthIdx) {
-    const mn = monthNames[monthIdx];
-    const meta = monthMeta[monthIdx];
-    const at = STATE.attendance[sid];
-    const rec = at?.monthly?.find(m=>m.m===mn) || {p:0,a:0,l:0,t:0};
-    const days = meta.days;
-    const start = meta.start; // day of week for 1st (0=Sun)
-    const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-    // Mock day statuses from record totals (distribute P/A/L across school days Mon-Fri)
-    const statuses = {};
-    let pLeft=rec.p, aLeft=rec.a, lLeft=rec.l;
-    for(let d=1;d<=days;d++){
-      const dow=(start+d-1)%7;
-      if(dow===0||dow===6){statuses[d]='weekend';continue;}
-      if(aLeft>0){statuses[d]='A';aLeft--;}
-      else if(lLeft>0){statuses[d]='L';lLeft--;}
-      else if(pLeft>0){statuses[d]='P';pLeft--;}
-      else{statuses[d]='none';}
+  function getOrCreateDayRecord(sid, monthName) {
+    if (!STATE.attendanceDays) STATE.attendanceDays = {};
+    if (!STATE.attendanceDays[sid]) STATE.attendanceDays[sid] = {};
+    if (!STATE.attendanceDays[sid][monthName]) {
+      // Seed from existing monthly totals on first access for realism
+      STATE.attendanceDays[sid][monthName] = {};
     }
+    return STATE.attendanceDays[sid][monthName];
+  }
 
-    const colorMap={P:'#DCE6FF',A:'#FDECEC',L:'#FFF4C2',weekend:'#F5F4F0',none:'#fff'};
-    const textMap={P:'#2A76C9',A:'#B52B2B',L:'#C79800',weekend:'#9E9C94',none:'#ccc'};
+  function seedFromLegacy(sid, monthIdx) {
+    const mn = MONTHS[monthIdx];
+    const shortNames = ['June','July','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+    const at = STATE.attendance[sid];
+    const legacy = at?.monthly?.find(m => m.m === shortNames[monthIdx] || mn.name.startsWith(m.m));
+    const dayRecs = getOrCreateDayRecord(sid, mn.name);
+    if (Object.keys(dayRecs).length > 0 || !legacy) return dayRecs;
+    let pLeft = legacy.p, aLeft = legacy.a, lLeft = legacy.l;
+    mn.schoolDays.forEach(d => {
+      if (aLeft > 0) { dayRecs[d] = 'A'; aLeft--; }
+      else if (lLeft > 0) { dayRecs[d] = 'L'; lLeft--; }
+      else if (pLeft > 0) { dayRecs[d] = 'P'; pLeft--; }
+    });
+    return dayRecs;
+  }
 
-    let cells='';
-    // Empty cells before 1st
-    for(let i=0;i<start;i++) cells+=`<div></div>`;
-    for(let d=1;d<=days;d++){
-      const st=statuses[d];
-      cells+=`<div style="aspect-ratio:1;border-radius:6px;background:${colorMap[st]};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${textMap[st]}">${d}</div>`;
+  function buildCalendar(sid, monthIdx) {
+    const mn = MONTHS[monthIdx];
+    const dayRecs = seedFromLegacy(sid, monthIdx);
+    const colorMap = { P:'#DCE6FF', A:'#FDECEC', L:'#FFF4C2', weekend:'#F5F4F0', holiday:'#F0F0F0' };
+    const textMap  = { P:'#2A76C9', A:'#B52B2B', L:'#C79800', weekend:'#9E9C94', holiday:'#ccc' };
+
+    let cells = '';
+    for (let i = 0; i < mn.start; i++) cells += `<div></div>`;
+    for (let d = 1; d <= mn.days; d++) {
+      const dow = (mn.start + d - 1) % 7;
+      const isWeekend = dow === 0 || dow === 6;
+      const isSchoolDay = mn.schoolDays.includes(d);
+      const status = isWeekend ? 'weekend' : (!isSchoolDay ? 'holiday' : (dayRecs[d] || 'none'));
+      const bg = isWeekend ? colorMap.weekend : (!isSchoolDay ? colorMap.holiday : (colorMap[status] || '#fff'));
+      const tc = isWeekend ? textMap.weekend : (!isSchoolDay ? textMap.holiday : (textMap[status] || '#ccc'));
+      const isClickable = isSchoolDay && isTeacher;
+      const isSelected = selDay === d && isTeacher;
+      cells += `<div ${isClickable ? `onclick="selectDay(${d})"` : ''}
+        style="aspect-ratio:1;border-radius:6px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${tc};${isClickable ? 'cursor:pointer;' : ''}border:${isSelected ? '2px solid var(--green)' : '1.5px solid transparent'};position:relative">
+        ${d}
+      </div>`;
     }
 
     return `<div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">
-        ${dayLabels.map(d=>`<div style="font-size:9px;font-weight:700;text-align:center;color:var(--text3);padding:3px 0">${d}</div>`).join('')}
+        ${DAY_LABELS.map(d => `<div style="font-size:9px;font-weight:700;text-align:center;color:var(--text3);padding:3px 0">${d}</div>`).join('')}
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells}</div>
       <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:3px;background:#DCE6FF"></div>Present</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:3px;background:#FDECEC"></div>Absent</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:3px;background:#FFF4C2"></div>Late</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:3px;background:#F5F4F0"></div>Weekend</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:3px;background:#F5F4F0"></div>Weekend/Holiday</div>
       </div>
     </div>`;
   }
 
+  window.selectDay = function(day) { selDay = day; render(); };
+
   function render() {
-    const students=getStudents();
-    el.innerHTML=`
+    const students = getStudents();
+    const mn = MONTHS[selMonth];
+
+    el.innerHTML = `
     <div class="page-head">
-      <div><div class="page-title">Attendance ${isParent?'Record':isPrincipal?'Overview':'Tracking'}</div><div class="page-sub">SY 2024-2025</div></div>
-      ${isTeacher?`<button class="btn btn-primary" onclick="saveAttendanceRecord()">💾 Save Attendance</button>`:''}
+      <div><div class="page-title">Attendance ${isParent ? 'Record' : isPrincipal ? 'Overview' : 'Tracking'}</div><div class="page-sub">SY 2024-2025 · ${mn.name}</div></div>
     </div>
 
-    <!-- Month selector -->
     <div class="card mb-16" style="padding:14px 16px">
       <div class="flex aic gap-16 flex-wrap">
         <div class="flex aic gap-10">
           <label class="txs tmm fw7">MONTH:</label>
-          <select id="att-month-sel" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit" onchange="selMonth=parseInt(this.value);todayRecords={};render()">
-            ${monthNames.map((m,i)=>`<option value="${i}" ${i===selMonth?'selected':''}>${m}</option>`).join('')}
+          <select id="att-month-sel" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit" onchange="selMonth=parseInt(this.value);selDay=null;todayRecords={};render()">
+            ${MONTHS.map((m, i) => `<option value="${i}" ${i === selMonth ? 'selected' : ''}>${m.name}</option>`).join('')}
           </select>
         </div>
-        ${isTeacher?`<div class="flex gap-8">
-          <span class="badge bg-green">P = Present</span>
-          <span class="badge bg-red">A = Absent</span>
-          <span class="badge bg-amber">L = Late</span>
-        </div>`:''}
+        ${isTeacher ? `
+        <div class="flex aic gap-8">
+          <span class="txs tmm fw7">MARK SELECTED DAY:</span>
+          <div class="flex gap-6">
+            <button class="btn btn-secondary btn-xs" style="background:var(--green-l);color:var(--green)" onclick="markDayAll('P')">✓ Present</button>
+            <button class="btn btn-secondary btn-xs" style="background:var(--red-l);color:var(--red)" onclick="markDayAll('A')">✗ Absent</button>
+            <button class="btn btn-secondary btn-xs" style="background:var(--amber-l);color:var(--amber)" onclick="markDayAll('L')">⏰ Late</button>
+          </div>
+        </div>` : ''}
       </div>
+      ${selDay && isTeacher ? `<div style="margin-top:10px;padding:8px 12px;background:var(--green-l);border-radius:8px;font-size:13px;color:var(--green);font-weight:600">
+        📅 Selected day: <strong>${mn.name.split(' ')[0]} ${selDay}, ${mn.name.split(' ')[1]}</strong> — mark attendance for this exact day
+      </div>` : isTeacher ? `<div style="margin-top:8px;font-size:12px;color:var(--text3)">💡 Click a specific day on the calendar below to select it, then mark attendance for that day.</div>` : ''}
     </div>
 
     ${isParent ? `
-    <!-- Parent: calendar + summary side by side -->
     <div class="g2 mb-16">
       <div class="card">
-        <div class="card-title">${monthNames[selMonth]} Calendar</div>
+        <div class="card-title">${mn.name} — Calendar</div>
         ${buildCalendar(STATE.currentUser.childId, selMonth)}
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="card">
-          <div class="card-title">Summary — ${monthNames[selMonth]}</div>
+          <div class="card-title">Monthly Summary</div>
           ${(()=>{
-            const at=STATE.attendance[STATE.currentUser.childId];
-            const rec=at?.monthly?.find(m=>m.m===monthNames[selMonth])||{p:0,a:0,l:0,t:0};
-            const rate=rec.t?Math.round(rec.p/rec.t*100):0;
+            const dayRecs = seedFromLegacy(STATE.currentUser.childId, selMonth);
+            const days = Object.values(dayRecs);
+            const p = days.filter(x=>x==='P').length, a = days.filter(x=>x==='A').length, l = days.filter(x=>x==='L').length;
+            const total = mn.schoolDays.length;
+            const rate = total ? Math.round((p+l)/total*100) : 0;
             return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-              <div style="padding:12px;background:var(--green-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green)">${rec.p}</div><div class="txs tm">Present</div></div>
-              <div style="padding:12px;background:var(--red-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--red)">${rec.a}</div><div class="txs tm">Absent</div></div>
-              <div style="padding:12px;background:var(--amber-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--amber)">${rec.l}</div><div class="txs tm">Late</div></div>
+              <div style="padding:12px;background:var(--green-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green)">${p}</div><div class="txs tm">Present</div></div>
+              <div style="padding:12px;background:var(--red-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--red)">${a}</div><div class="txs tm">Absent</div></div>
+              <div style="padding:12px;background:var(--amber-l);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--amber)">${l}</div><div class="txs tm">Late</div></div>
               <div style="padding:12px;background:var(--surface2);border-radius:9px;text-align:center"><div style="font-size:24px;font-weight:800;color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}">${rate}%</div><div class="txs tm">Rate</div></div>
-            </div>`;
+            </div>
+            <div style="font-size:12px;color:var(--text3)">Total school days this month: <strong>${total}</strong></div>`;
           })()}
         </div>
-        <!-- All months breakdown -->
         <div class="card">
-          <div class="card-title">All Months</div>
-          <table style="width:100%;border-collapse:collapse;font-size:12.5px">
-            <thead><tr style="background:var(--surface2)">
-              <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--border)">Month</th>
-              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)">P</th>
-              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)">A</th>
-              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)">L</th>
-              <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)">Rate</th>
-            </tr></thead>
-            <tbody>${(()=>{
-              const at=STATE.attendance[STATE.currentUser.childId];
-              if(!at||!at.monthly.length) return `<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--text3)">No records yet</td></tr>`;
-              return at.monthly.map(m=>`<tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:6px 8px;font-weight:600">${m.m}</td>
-                <td style="padding:6px 8px;text-align:center;color:var(--green);font-weight:600">${m.p}</td>
-                <td style="padding:6px 8px;text-align:center;color:var(--red);font-weight:600">${m.a}</td>
-                <td style="padding:6px 8px;text-align:center;color:var(--amber);font-weight:600">${m.l}</td>
-                <td style="padding:6px 8px;text-align:center"><span class="badge ${m.t&&Math.round(m.p/m.t*100)>=90?'bg-green':m.t&&Math.round(m.p/m.t*100)>=75?'bg-amber':'bg-red'}">${m.t?Math.round(m.p/m.t*100)+'%':'—'}</span></td>
-              </tr>`).join('');
-            })()}</tbody>
-          </table>
+          <div class="card-title">Specific Absent / Late Dates</div>
+          ${(()=>{
+            const dayRecs = seedFromLegacy(STATE.currentUser.childId, selMonth);
+            const issues = Object.entries(dayRecs).filter(([d,st]) => st !== 'P').sort((a,b)=>a[0]-b[0]);
+            if (issues.length === 0) return `<div class="txs tmm" style="padding:10px 0">No absences or late marks this month. 🎉</div>`;
+            return issues.map(([d,st]) => `<div class="flex aic jb" style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <span class="ts fw6">${mn.name.split(' ')[0]} ${d}</span>
+              <span class="badge ${st==='A'?'bg-red':'bg-amber'}">${st==='A'?'Absent':'Late'}</span>
+            </div>`).join('');
+          })()}
         </div>
       </div>
     </div>` : `
-    <!-- Teacher / Principal: mark-today table -->
     <div class="tbl-wrap mb-16">
-      <div class="tbl-toolbar"><span class="ts fw7">${monthNames[selMonth]} — Attendance</span></div>
+      <div class="tbl-toolbar"><span class="ts fw7">${mn.name} — Per Student Attendance</span></div>
       <table>
         <thead><tr>
           <th>Student</th><th>Present</th><th>Absent</th><th>Late</th><th>School Days</th><th>Rate</th>
-          ${isTeacher?`<th>Mark Today</th>`:''}
+          ${isTeacher ? `<th>Mark for ${selDay ? mn.name.split(' ')[0] + ' ' + selDay : 'selected day'}</th>` : ''}
         </tr></thead>
-        <tbody>${students.map(s=>{
-          const at=STATE.attendance[s.id];
-          const monthly=at?.monthly?.find(m=>m.m===monthNames[selMonth])||{p:0,a:0,l:0,t:0};
-          const totalAt=at?at.total:{present:0,absent:0,late:0,total:0};
-          const rate=totalAt.total?Math.round(totalAt.present/totalAt.total*100):0;
-          const cur=todayRecords[s.id]||'Present';
+        <tbody>${students.map(s => {
+          const dayRecs = seedFromLegacy(s.id, selMonth);
+          const days = Object.values(dayRecs);
+          const p = days.filter(x=>x==='P').length, a = days.filter(x=>x==='A').length, l = days.filter(x=>x==='L').length;
+          const total = mn.schoolDays.length;
+          const rate = total ? Math.round((p+l)/total*100) : 0;
+          const curStatus = selDay ? (todayRecords[s.id] || (dayRecs[selDay] === 'A' ? 'Absent' : dayRecs[selDay] === 'L' ? 'Late' : 'Present')) : 'Present';
           return `<tr>
             <td><div class="flex aic gap-8"><div class="av av-32 av-green">${ini(s.name)}</div><div><div class="fw6">${s.name}</div><div class="txs tmm">${s.grade}–${s.section}</div></div></div></td>
-            <td><span class="badge bg-green">${monthly.p}</span></td>
-            <td><span class="badge bg-red">${monthly.a}</span></td>
-            <td><span class="badge bg-amber">${monthly.l}</span></td>
-            <td>${monthly.t}</td>
+            <td><span class="badge bg-green">${p}</span></td>
+            <td><span class="badge bg-red">${a}</span></td>
+            <td><span class="badge bg-amber">${l}</span></td>
+            <td>${total}</td>
             <td><div class="flex aic gap-6">
-              <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden">
-                <div style="height:100%;width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}"></div>
-              </div>
+              <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}"></div></div>
               <span class="txs fw6" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'};min-width:32px">${rate}%</span>
             </div></td>
-            ${isTeacher?`<td><select style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;font-family:inherit" data-sid="${s.id}" onchange="todayRecords[this.dataset.sid]=this.value">
-              <option ${cur==='Present'?'selected':''}>Present</option>
-              <option ${cur==='Absent'?'selected':''}>Absent</option>
-              <option ${cur==='Late'?'selected':''}>Late</option>
-            </select></td>`:''}
+            ${isTeacher ? `<td>${selDay ? `<select style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;outline:none;font-family:inherit" data-sid="${s.id}" onchange="todayRecords[this.dataset.sid]=this.value">
+              <option ${curStatus==='Present'?'selected':''}>Present</option>
+              <option ${curStatus==='Absent'?'selected':''}>Absent</option>
+              <option ${curStatus==='Late'?'selected':''}>Late</option>
+            </select>
+            <button class="btn btn-primary btn-xs" style="margin-left:6px" onclick="saveDayRecord('${s.id}')">Save</button>` : '<span class="txs tmm">← Select a day on calendar</span>'}</td>` : ''}
           </tr>`;
         }).join('')}</tbody>
       </table>
     </div>
 
     <div class="card">
-      <div class="card-title">Overall Attendance Rate</div>
-      ${students.map(s=>{
-        const at=STATE.attendance[s.id];
-        const t=at?at.total:{present:0,total:0};
-        const rate=t.total?Math.round(t.present/t.total*100):0;
-        return `<div class="prog-wrap">
-          <div class="prog-top">
-            <span class="ts fw6">${s.name}${isPrincipal?` <span class="txs tmm">– ${s.grade} ${s.section}</span>`:''}</span>
-            <span class="ts" style="color:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}">${rate}%</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:${rate}%;background:${rate>=90?'var(--green)':rate>=75?'var(--amber)':'var(--red)'}"></div></div>
-        </div>`;
-      }).join('')}
+      <div class="card-title">Attendance Calendars — ${mn.name} (click a day to mark)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+        ${students.map(s => `
+          <div class="card" style="background:var(--bg)">
+            <div class="flex aic gap-8 mb-10"><div class="av av-28 av-green">${ini(s.name)}</div><div class="fw6 ts">${s.name}</div></div>
+            ${buildCalendar(s.id, selMonth)}
+          </div>`).join('')}
+      </div>
     </div>`}`;
 
-    window.saveAttendanceRecord = () => {
-      const mn=monthNames[selMonth];
-      getStudents().forEach(s=>{
-        if(!STATE.attendance[s.id]) STATE.attendance[s.id]={monthly:[],total:{present:0,absent:0,late:0,total:0}};
-        const at=STATE.attendance[s.id];
-        const val=todayRecords[s.id]||'Present';
-        let mRec=at.monthly.find(x=>x.m===mn);
-        if(!mRec){mRec={m:mn,p:0,a:0,l:0,t:0};at.monthly.push(mRec);}
-        if(val==='Absent'){mRec.a++;at.total.absent++;}
-        else if(val==='Late'){mRec.l++;mRec.p++;at.total.late++;at.total.present++;}
-        else{mRec.p++;at.total.present++;}
-        mRec.t++;at.total.total++;
-      });
-      todayRecords={};
-      toast(`Attendance saved for ${monthNames[selMonth]}!`);
+    window.markDayAll = function(status) {
+      if (!selDay) { toast('Select a day on the calendar first.', 'error'); return; }
+      students.forEach(s => { todayRecords[s.id] = status === 'P' ? 'Present' : status === 'A' ? 'Absent' : 'Late'; });
+      students.forEach(s => saveDayRecordSilent(s.id));
+      toast(`All students marked as ${status === 'P' ? 'Present' : status === 'A' ? 'Absent' : 'Late'} for ${mn.name.split(' ')[0]} ${selDay}`);
+      render();
+    };
+
+    function saveDayRecordSilent(sid) {
+      const status = todayRecords[sid] || 'Present';
+      const dayRecs = getOrCreateDayRecord(sid, mn.name);
+      dayRecs[selDay] = status === 'Present' ? 'P' : status === 'Absent' ? 'A' : 'L';
+    }
+
+    window.saveDayRecord = function(sid) {
+      if (!selDay) return;
+      saveDayRecordSilent(sid);
+      toast(`Saved: ${STATE.students.find(s=>s.id===sid)?.name} — ${mn.name.split(' ')[0]} ${selDay} → ${todayRecords[sid] || 'Present'}`);
       render();
     };
   }
   render();
 }
-
 /* ════════════════════════════════════════════════════════════════════════════
    PARENTS — Teacher manages parents (add, edit, link to student)
+   FIX 2: password show/hide toggle when adding a parent
    ════════════════════════════════════════════════════════════════════════════ */
 function pgParentsTeacher(el) {
   const myStudents = STATE.students.filter(s=>s.teacherId===STATE.currentUser.teacherId);
@@ -1561,6 +1762,7 @@ function pgParentsTeacher(el) {
   renderRows();
 }
 
+/* FIX 2: password show/hide toggle */
 function openAddParentTeacherModal() {
   const myStudents = STATE.students.filter(s=>s.teacherId===STATE.currentUser.teacherId && !STATE.parents.find(p=>p.childId===s.id));
   openModal(`
@@ -1573,14 +1775,15 @@ function openAddParentTeacherModal() {
       <div class="fg"><label>Full Name*</label><input id="pt-name" placeholder="Parent/Guardian name"></div>
       <div class="fg"><label>Email* (used for login)</label><input id="pt-email" type="email" placeholder="parent@email.com"></div>
       <div class="fg"><label>Phone*</label><input id="pt-phone" placeholder="09XXXXXXXXX"></div>
-      <div class="fg"><label>Password* (parent will use this to log in)</label>
-        <div class="pass-wrap">
-          <input id="pt-pass" type="password" placeholder="Create a password for the parent">
-          <button type="button" class="pass-toggle" onclick="
+      <div class="fg">
+        <label>Password* (parent will use this to log in)</label>
+        <div style="position:relative">
+          <input id="pt-pass" type="password" placeholder="Create a password for the parent" style="width:100%;padding-right:42px">
+          <button type="button" onclick="
             var i=document.getElementById('pt-pass');
             i.type=i.type==='password'?'text':'password';
-            this.innerHTML=i.type==='password'?'<i class=\'fa-solid fa-eye\'></i>':'<i class=\'fa-solid fa-eye-slash\'></i>'
-          "><i class="fa-solid fa-eye"></i></button>
+            this.textContent=i.type==='password'?'👁':'🙈'
+          " style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1" title="Show/Hide password">👁</button>
         </div>
       </div>
       <div class="fg" style="grid-column:span 2"><label>Linked Student*</label><select id="pt-child">
@@ -1612,6 +1815,7 @@ function saveParentTeacher() {
   if (typeof window.refreshParentRows==='function') window.refreshParentRows();
 }
 
+/* FIX 2: also add password toggle to Edit Parent modal (optional reset password field) */
 function openEditParentTeacherModal(id) {
   const p = STATE.parents.find(x=>x.id===id); if (!p) return;
   openModal(`
@@ -1621,22 +1825,43 @@ function openEditParentTeacherModal(id) {
       <div class="fg"><label>Full Name*</label><input id="ept-name" value="${p.name}"></div>
       <div class="fg"><label>Email*</label><input id="ept-email" type="email" value="${p.email}"></div>
       <div class="fg" style="grid-column:span 2"><label>Phone</label><input id="ept-phone" value="${p.phone}"></div>
+      <div class="fg" style="grid-column:span 2">
+        <label>Reset Password (leave blank to keep current)</label>
+        <div style="position:relative">
+          <input id="ept-pass" type="password" placeholder="New password for parent" style="width:100%;padding-right:42px">
+          <button type="button" onclick="
+            var i=document.getElementById('ept-pass');
+            i.type=i.type==='password'?'text':'password';
+            this.textContent=i.type==='password'?'👁':'🙈'
+          " style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1" title="Show/Hide password">👁</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateParentTeacher('${id}')">Save</button></div>`);
 }
 function updateParentTeacher(id) {
   const p=STATE.parents.find(x=>x.id===id); if(!p) return;
+  const newEmail = document.getElementById('ept-email')?.value.trim() || p.email;
+  const newPass  = document.getElementById('ept-pass')?.value.trim();
+  const oldEmail = p.email;
   p.name=document.getElementById('ept-name')?.value.trim()||p.name;
-  p.email=document.getElementById('ept-email')?.value.trim()||p.email;
+  p.email=newEmail;
   p.phone=document.getElementById('ept-phone')?.value.trim()||p.phone;
+  // Sync login account
+  if (STATE.users[oldEmail]) {
+    const userRec = STATE.users[oldEmail];
+    if (newPass) userRec.password = newPass;
+    userRec.name = p.name; userRec.email = newEmail;
+    if (newEmail !== oldEmail) { STATE.users[newEmail] = userRec; delete STATE.users[oldEmail]; }
+  }
   closeModal(); toast('Parent updated!'); if(typeof window.refreshParentRows==='function') window.refreshParentRows();
 }
 function deleteParentTeacher(id,name) {
   showConfirm('Remove Parent',`Remove <strong>${name}</strong>?`,()=>{
     const p=STATE.parents.find(x=>x.id===id);
     if (p) {
-      delete STATE.users[p.email]; // remove login
+      delete STATE.users[p.email];
       const s=STATE.students.find(st=>st.id===p.childId); if(s) s.parentId=null;
     }
     STATE.parents.splice(STATE.parents.findIndex(x=>x.id===id),1);
@@ -1771,155 +1996,430 @@ function pgClasses(el) {
       }).join('')}
     </div>`;
 }
-
 /* ════════════════════════════════════════════════════════════════════════════
    MESSAGES PAGE
+   FIX 1: Principal only sees messages involving themselves (teacher ↔ principal)
+   FIX 8: Working Archive + Delete buttons
+   FIX 9: Search bar no longer loses focus while typing (updateThreadList is separate)
    ════════════════════════════════════════════════════════════════════════════ */
 function pgMessages(el) {
   const u = STATE.currentUser;
-  let selectedRoot = null, searchQ='';
+  let selectedRoot = null, searchQ = '';
+
   function getAllMsgs() {
-    return STATE.messages.filter(m => m.toId===u.id || m.fromId===u.id || (u.role==='principal'&&true));
+    return STATE.messages.filter(m => {
+      if (m.isAlert) return false;
+      // FIX 1: Principal only sees threads involving them directly
+      if (u.role === 'principal') {
+        return (m.toId === u.id || m.fromId === u.id) &&
+               (m.toRole === 'principal' || m.fromRole === 'principal');
+      }
+      return m.toId === u.id || m.fromId === u.id;
+    });
   }
+
+  function getAlerts() {
+    return STATE.messages.filter(m => m.isAlert && m.toId === u.id);
+  }
+
   function getThreadPreviews() {
-    const all=getAllMsgs(), map={};
-    all.forEach(m=>{const root=m.thread||m.id; if(!map[root])map[root]=[]; map[root].push(m);});
-    return Object.entries(map).map(([root,msgs])=>{
-      msgs.sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-      return {rootId:parseInt(root),latest:msgs[0]};
-    }).sort((a,b)=>(b.latest.date+b.latest.time).localeCompare(a.latest.date+a.latest.time));
+    const all = getAllMsgs(), map = {};
+    all.forEach(m => { const root = m.thread || m.id; if (!map[root]) map[root] = []; map[root].push(m); });
+    return Object.entries(map).map(([root, msgs]) => {
+      msgs.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+      return { rootId: parseInt(root), latest: msgs[0] };
+    }).sort((a, b) => (b.latest.date + b.latest.time).localeCompare(a.latest.date + a.latest.time))
+      .filter(t => !(STATE.archivedMessages || []).includes(t.rootId));
   }
+
   function getThread(rootId) {
-    return getAllMsgs().filter(m=>m.id===rootId||m.thread===rootId).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    return getAllMsgs().filter(m => m.id === rootId || m.thread === rootId)
+      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   }
-  function render() {
-    let threads=getThreadPreviews();
-    if(searchQ) threads=threads.filter(t=>t.latest.subject.toLowerCase().includes(searchQ)||t.latest.fromName.toLowerCase().includes(searchQ)||t.latest.body.toLowerCase().includes(searchQ));
-    if(!selectedRoot&&threads.length>0) selectedRoot=threads[0].rootId;
-    const selThread=threads.find(t=>t.rootId===selectedRoot)||null;
-    const messages=selThread?getThread(selThread.rootId):[];
-    messages.forEach(m=>{if(!m.read&&(m.toId===u.id))m.read=true;});
-    updateUnreadBadge(); buildSidebar(u.role);
-    const unreadCount=getAllMsgs().filter(m=>!m.read&&m.toId===u.id).length;
-    el.innerHTML=`
-    <div class="page-head"><div><div class="page-title">Messages</div><div class="page-sub">${threads.length} conversation(s)</div></div>
-    <div class="page-actions">${u.role!=='principal'?`<button class="btn btn-primary" onclick="openComposeModal()">✏️ Compose</button>`:''}</div></div>
-    <div class="msg-layout">
-      <div class="msg-list">
-        <div class="msg-list-head"><span>Inbox</span><span class="badge bg-red" style="${unreadCount?'':'display:none'}">${unreadCount}</span></div>
-        <div style="padding:8px"><input id="msg-search-inp" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12.5px;outline:none;font-family:inherit" placeholder="Search..." value="${searchQ}"></div>
-        <div class="msg-list-body">
-          ${threads.length===0?`<div class="msg-empty"><span>💬</span><span>No messages</span></div>`:
-            threads.map(t=>{
-              const m=t.latest;
-              const isUnread=!m.read&&m.toId===u.id;
-              const isAlert=m.isAlert;
-              return `<div class="msg-item ${t.rootId===selectedRoot?'active':''} ${isUnread?'unread':''}" data-root="${t.rootId}" style="${isAlert?'border-left:3px solid var(--red)':''}">
-                <div class="msg-item-meta"><div class="msg-item-name" style="${isAlert?'color:var(--red)':''}">${m.fromId===u.id?`You → ${m.toRole}`:m.fromName}</div>${isUnread?'<div class="msg-unread-dot"></div>':''}</div>
-                <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${isAlert?'⚠️ ':''} ${m.subject.replace(/^(Re: )+/,'')}</div>
-                <div class="msg-item-preview">${m.body.replace(/\n/g,' ').slice(0,55)}…</div>
-                <div class="msg-item-date">${m.date} · ${m.time}</div>
-              </div>`;
-            }).join('')}
+
+  function getOtherPerson(latest) {
+    if (latest.fromId === u.id) {
+      if (latest.toRole === 'parent') { const p = STATE.parents.find(x => x.id === latest.toId); return { name: p ? p.name : 'Parent', role: 'parent' }; }
+      if (latest.toRole === 'teacher') { const t = STATE.teachers.find(x => x.id === latest.toId); return { name: t ? t.name : 'Teacher', role: 'teacher' }; }
+      if (latest.toRole === 'principal') return { name: 'Principal Roberto Cruz', role: 'principal' };
+    }
+    return { name: latest.fromName, role: latest.fromRole };
+  }
+
+  function avStyle(role) {
+    return {
+      parent:    'background:var(--amber-l);color:var(--amber)',
+      teacher:   'background:var(--green-l);color:var(--green)',
+      principal: 'background:var(--purple-l);color:var(--purple)',
+      system:    'background:var(--red-l);color:var(--red)',
+    }[role] || 'background:var(--green-l);color:var(--green)';
+  }
+
+  /* FIX 9: render the sidebar header + search input ONCE, only update thread list on search */
+  function renderSidebarShell() {
+    const unreadCount = getAllMsgs().filter(m => !m.read && m.toId === u.id).length
+      + getAlerts().filter(a => !a.read).length;
+    document.getElementById('msg-sidebar-head').innerHTML = `
+      <div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;font-weight:600;color:var(--text)">Messages</span>
+          ${unreadCount > 0 ? `<span style="background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:10px;font-weight:700;padding:0 5px;display:inline-flex;align-items:center;justify-content:center">${unreadCount}</span>` : ''}
+        </div>
+        ${u.role !== 'principal'
+          ? `<button class="btn btn-primary btn-xs" onclick="openComposeModal()">✏️ Compose</button>`
+          : `<button class="btn btn-primary btn-xs" onclick="openComposeModal()">✏️ Message Teacher</button>`}
+      </div>
+      <div style="padding:10px 12px;border-bottom:0.5px solid var(--border)">
+        <input id="msg-search-inp"
+          style="width:100%;padding:7px 10px 7px 30px;border:0.5px solid var(--border);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit;background:var(--surface2);color:var(--text);background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23999%22%3E%3Cpath d=%22M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:8px center;background-size:16px"
+          placeholder="Search conversations..." value="${searchQ}">
+      </div>`;
+
+    /* Attach search — using oninput on the element directly so it never gets re-added */
+    const si = document.getElementById('msg-search-inp');
+    if (si) {
+      si.oninput = function() {
+        searchQ = this.value.toLowerCase();
+        updateThreadList(); /* only updates thread list, not the input */
+      };
+    }
+  }
+
+  /* FIX 9: only this function re-renders the thread list — it does NOT touch the search input */
+  function updateThreadList() {
+    let threads = getThreadPreviews();
+    const alerts = getAlerts().filter(a => !(STATE.archivedMessages||[]).includes(a.id));
+    const alertItems = alerts.map(a => ({ rootId: a.id, latest: a, isAlert: true }));
+    let combined = [...alertItems, ...threads];
+
+    if (searchQ) combined = combined.filter(t =>
+      (t.latest.subject || '').toLowerCase().includes(searchQ) ||
+      (t.latest.fromName || '').toLowerCase().includes(searchQ) ||
+      (t.latest.body || '').toLowerCase().includes(searchQ)
+    );
+
+    document.getElementById('msg-thread-list').innerHTML = combined.length === 0
+      ? `<div style="padding:40px 20px;text-align:center;color:var(--text3)"><div style="font-size:36px;margin-bottom:8px">💬</div><div style="font-size:13px">No messages found</div></div>`
+      : combined.map(t => {
+          const m = t.latest;
+          const isAlert = t.isAlert || m.isAlert;
+          const person = isAlert ? { name: '🔔 TrackEd Alert', role: 'system' } : getOtherPerson(m);
+          const isUnread = !m.read && m.toId === u.id;
+          const initials = person.name.replace(/[^\w\s]/g,'').split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+          const isActive = t.rootId === selectedRoot;
+
+          return `<div class="msg-thread-item" data-root="${t.rootId}" data-alert="${isAlert}"
+            style="padding:12px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;position:relative;transition:background .15s;
+            background:${isActive ? 'var(--green-l)' : 'transparent'};
+            ${isAlert ? 'border-left:3px solid var(--red)' : ''}">
+            ${isUnread ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--${isAlert?'red':'green'});position:absolute;right:14px;top:14px"></div>` : ''}
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;${avStyle(person.role)}">
+                ${isAlert ? '⚠️' : initials}
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+                  <span style="font-size:13px;font-weight:${isUnread?'700':'500'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${person.name}</span>
+                  <span style="font-size:11px;color:var(--text3);white-space:nowrap">${m.date}</span>
+                </div>
+                <div style="font-size:12px;font-weight:${isUnread?'600':'400'};color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(m.subject||'').replace(/^(Re: )+/,'')}</div>
+                <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${(m.body||'').replace(/\n/g,' ').slice(0,48)}…</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+
+    /* Attach click listeners fresh each time */
+    document.querySelectorAll('.msg-thread-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectedRoot = parseInt(item.dataset.root);
+        openThread(selectedRoot, item.dataset.alert === 'true');
+      });
+    });
+  }
+
+  function openThread(rootId, isAlert = false) {
+    selectedRoot = rootId;
+    let messages, threadSubject, person;
+
+    if (isAlert) {
+      const alertMsg = STATE.messages.find(m => m.id === rootId && m.isAlert);
+      if (!alertMsg) return;
+      alertMsg.read = true;
+      messages = [alertMsg];
+      threadSubject = alertMsg.subject;
+      person = { name: '🔔 TrackEd Alert', role: 'system' };
+    } else {
+      messages = getThread(rootId);
+      messages.forEach(m => { if (!m.read && m.toId === u.id) m.read = true; });
+      const latest = STATE.messages.find(m => m.id === rootId);
+      if (!latest) return;
+      person = getOtherPerson(latest);
+      threadSubject = latest.subject.replace(/^(Re: )+/, '');
+    }
+
+    updateUnreadBadge();
+    buildSidebar(u.role);
+    updateThreadList(); /* only updates thread list without touching search input */
+
+    const initials = person.name.replace(/[^\w\s]/g,'').split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const studentId = messages[0]?.studentId;
+    const studentName = studentId ? STATE.students.find(s => s.id === studentId)?.name : null;
+
+    document.getElementById('msg-panel').innerHTML = `
+      <div style="padding:14px 20px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)">
+        <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;${avStyle(person.role)}">
+          ${isAlert ? '⚠️' : initials}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${person.name}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:1px">
+            ${threadSubject}
+            ${studentName ? `<span style="margin-left:6px;background:var(--green-l);color:var(--green);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600">${studentName}</span>` : ''}
+          </div>
+        </div>
+        <!-- FIX 8: working Archive and Delete buttons -->
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-xs" onclick="archiveThread(${rootId})" title="Archive conversation">📁 Archive</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteThread(${rootId})" title="Delete conversation">🗑 Delete</button>
         </div>
       </div>
-      <div class="msg-panel">
-        ${!selThread?`<div class="msg-empty" style="height:100%"><span style="font-size:48px">💬</span><span class="fw6">Select a conversation</span></div>`:
-          `<div class="msg-panel-head">
-            <div class="msg-panel-subject">${selThread.latest.isAlert?'⚠️ ':''} ${selThread.latest.subject.replace(/^(Re: )+/,'')}</div>
-            <div class="msg-panel-meta">${messages.length} message(s)${selThread.latest.studentId?` · ${STATE.students.find(s=>s.id===selThread.latest.studentId)?.name||''}`:''}</div>
-          </div>
-          <div class="msg-panel-body" id="msg-thread-body" style="display:flex;flex-direction:column;gap:12px">
-            ${messages.map(m=>{
-              const isMe=m.fromId===u.id, isSystem=m.fromId==='system';
-              return `<div style="display:flex;flex-direction:column;align-items:${isSystem?'center':isMe?'flex-end':'flex-start'}">
-                ${isSystem?`<div style="max-width:90%;background:var(--red-l);border:1px solid var(--red);padding:12px 16px;border-radius:12px;font-size:13.5px;line-height:1.65;white-space:pre-line">${m.body}</div><div class="txs tmm mt-4">${m.fromName} · ${m.date}</div>`:
-                `<div style="max-width:72%;background:${isMe?'var(--green)':'var(--bg)'};color:${isMe?'#fff':'var(--text)'};padding:11px 15px;border-radius:${isMe?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:13.5px;line-height:1.65;white-space:pre-line">${m.body}</div>
-                <div class="txs tmm mt-4">${isMe?'You':'<strong>'+m.fromName+'</strong>'} · ${m.date} ${m.time}</div>`}
-              </div>`;
-            }).join('')}
-          </div>
-          ${u.role!=='principal'?`<div class="msg-panel-reply">
-            <textarea id="reply-area" placeholder="Type your reply…"></textarea>
-            <button class="btn btn-primary" id="send-reply-btn">Send →</button>
-          </div>`:'<div style="padding:12px 20px;background:var(--surface2);text-align:center;font-size:12px;color:var(--text2)">Principal account is read-only for messages</div>'}`}
+
+      <div id="msg-thread-body" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px">
+        ${messages.map((m, i) => {
+          const isMe = m.fromId === u.id;
+          const isSystemMsg = m.fromId === 'system' || m.isAlert;
+          const showDate = i === 0 || messages[i-1]?.date !== m.date;
+          return `
+            ${showDate ? `<div style="display:flex;align-items:center;gap:10px;margin:2px 0">
+              <div style="flex:1;height:0.5px;background:var(--border)"></div>
+              <span style="font-size:11px;color:var(--text3);white-space:nowrap">${m.date}</span>
+              <div style="flex:1;height:0.5px;background:var(--border)"></div>
+            </div>` : ''}
+            ${isSystemMsg
+              ? `<div style="align-self:center;max-width:90%;background:var(--red-l);border:0.5px solid var(--red);border-radius:10px;padding:14px 16px">
+                  <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">⚠️ Automated Alert</div>
+                  <div style="font-size:13.5px;color:var(--text);line-height:1.65;white-space:pre-line">${m.body}</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:8px">${m.fromName} · ${m.date} ${m.time}</div>
+                </div>`
+              : `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+                  <div style="max-width:72%;padding:11px 15px;border-radius:${isMe?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:13.5px;line-height:1.65;white-space:pre-line;
+                    background:${isMe?'var(--green)':'var(--surface2)'};color:${isMe?'#fff':'var(--text)'};border:${isMe?'none':'0.5px solid var(--border)'}">
+                    ${m.body}
+                  </div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:4px;padding:0 4px">
+                    ${isMe ? 'You' : `<strong>${m.fromName}</strong>`} · ${m.date} ${m.time}
+                  </div>
+                </div>`}`;
+        }).join('')}
       </div>
-    </div>`;
-    el.querySelectorAll('.msg-item[data-root]').forEach(item=>{item.addEventListener('click',()=>{selectedRoot=parseInt(item.dataset.root);render();scrollChat();});});
-    const si=document.getElementById('msg-search-inp');
-    if(si)si.addEventListener('input',()=>{searchQ=si.value.toLowerCase();render();});
-    const btn=document.getElementById('send-reply-btn');
-    if(btn)btn.addEventListener('click',()=>{
-      const txt=document.getElementById('reply-area')?.value.trim();
-      if(!txt){toast('Reply cannot be empty.','error');return;}
-      const orig=STATE.messages.find(m=>m.id===selThread.rootId); if(!orig)return;
+
+      ${isAlert
+        ? `<div style="padding:12px 20px;text-align:center;font-size:12px;color:var(--text3);border-top:0.5px solid var(--border);background:var(--surface2)">
+            Automated alert — no reply needed.
+           </div>`
+        : u.role === 'principal'
+          ? `<div style="padding:12px 20px;text-align:center;font-size:12px;color:var(--text3);border-top:0.5px solid var(--border);background:var(--surface2)">
+              To start a new conversation, use "Message Teacher" above.
+             </div>`
+          : `<div style="padding:12px 16px;border-top:0.5px solid var(--border);background:var(--surface2)">
+              <div style="display:flex;gap:10px;align-items:flex-end">
+                <textarea id="reply-area" placeholder="Write a reply… (Enter to send, Shift+Enter for new line)"
+                  style="flex:1;padding:10px 14px;border:0.5px solid var(--border);border-radius:10px;font-size:13.5px;resize:none;height:44px;max-height:120px;outline:none;font-family:inherit;background:var(--bg);color:var(--text);line-height:1.5"
+                  onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();document.getElementById('send-reply-btn').click()}"
+                  oninput="this.style.height='44px';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+                <button id="send-reply-btn" style="background:var(--green);color:#fff;border:none;border-radius:10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:18px">
+                  <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+              </div>
+            </div>`}`;
+
+    /* Reply handler */
+    const btn = document.getElementById('send-reply-btn');
+    if (btn) btn.addEventListener('click', () => {
+      const txt = document.getElementById('reply-area')?.value.trim();
+      if (!txt) { toast('Reply cannot be empty.', 'error'); return; }
+      const orig = STATE.messages.find(m => m.id === rootId);
+      if (!orig) return;
+
+      const toRole = orig.fromId === u.id ? orig.toRole : orig.fromRole;
+      const toId   = orig.fromId === u.id ? orig.toId   : orig.fromId;
+
       STATE.messages.unshift({
-        id:STATE.nextMsgId++,fromRole:u.role,fromId:u.id,fromName:u.name,
-        toRole:orig.fromId===u.id?orig.toRole:orig.fromRole,
-        toId:orig.fromId===u.id?orig.toId:orig.fromId,
-        subject:orig.subject.startsWith('Re:')?orig.subject:'Re: '+orig.subject,
-        body:txt,date:new Date().toISOString().split('T')[0],
-        time:new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
-        read:false,studentId:orig.studentId,thread:orig.thread||orig.id,
+        id: STATE.nextMsgId++, fromRole: u.role, fromId: u.id, fromName: u.name,
+        toRole, toId,
+        subject: orig.subject.startsWith('Re:') ? orig.subject : 'Re: ' + orig.subject,
+        body: txt,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }),
+        read: false, studentId: orig.studentId, thread: orig.thread || orig.id,
       });
-      selectedRoot=orig.thread||orig.id;
-      updateUnreadBadge();buildSidebar(u.role);toast('Reply sent!');render();scrollChat();
+
+      selectedRoot = orig.thread || orig.id;
+
+      /* EmailJS notification */
+      let recipientEmail = null, recipientName = null;
+      if (toRole === 'parent') { const p = STATE.parents.find(x=>x.id===toId); if(p) { recipientEmail=p.email; recipientName=p.name; } }
+      else if (toRole === 'teacher') { const t = STATE.teachers.find(x=>x.id===toId); if(t) { recipientEmail=t.email; recipientName=t.name; } }
+      else if (toRole === 'principal') { recipientEmail='principal@tracked.edu'; recipientName='Principal Roberto Cruz'; }
+      if (recipientEmail && typeof sendMessageNotificationEmail === 'function') {
+        sendMessageNotificationEmail(recipientEmail, recipientName, u.name,
+          orig.subject.startsWith('Re:') ? orig.subject : 'Re: ' + orig.subject, txt);
+      }
+
+      updateUnreadBadge();
+      buildSidebar(u.role);
+      toast('Reply sent! ✉️');
+      openThread(selectedRoot, false);
     });
-    scrollChat();
+
+    setTimeout(() => { const b = document.getElementById('msg-thread-body'); if (b) b.scrollTop = b.scrollHeight; }, 60);
   }
-  function scrollChat(){setTimeout(()=>{const b=document.getElementById('msg-thread-body');if(b)b.scrollTop=b.scrollHeight;},60);}
-  render();
+
+  /* FIX 8: Archive thread */
+  window.archiveThread = function(rootId) {
+    if (!STATE.archivedMessages) STATE.archivedMessages = [];
+    if (!STATE.archivedMessages.includes(rootId)) STATE.archivedMessages.push(rootId);
+    selectedRoot = null;
+    document.getElementById('msg-panel').innerHTML = `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3)">
+        <div style="font-size:48px">📁</div>
+        <div style="font-size:14px;font-weight:600">Conversation archived</div>
+        <div style="font-size:12px">You can still find it by searching for it.</div>
+      </div>`;
+    updateThreadList();
+    toast('Conversation archived.');
+  };
+
+  /* FIX 8: Delete thread */
+  window.deleteThread = function(rootId) {
+    showConfirm('Delete Conversation', 'Permanently remove this entire conversation?', () => {
+      STATE.messages = STATE.messages.filter(m => m.id !== rootId && m.thread !== rootId);
+      selectedRoot = null;
+      document.getElementById('msg-panel').innerHTML = `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3)">
+          <div style="font-size:48px">🗑</div>
+          <div style="font-size:14px;font-weight:600">Conversation deleted</div>
+        </div>`;
+      updateUnreadBadge();
+      buildSidebar(u.role);
+      updateThreadList();
+      toast('Conversation deleted.', 'info');
+    });
+  };
+
+  /* ── Main layout ───────────────────────────────────────────────────────── */
+  el.innerHTML = `
+  <div class="page-head">
+    <div><div class="page-title">Messages</div></div>
+  </div>
+  <div style="display:flex;border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;height:calc(100vh - 160px);min-height:500px">
+    <div style="width:300px;flex-shrink:0;border-right:0.5px solid var(--border);display:flex;flex-direction:column;background:var(--bg);overflow:hidden">
+      <div id="msg-sidebar-head"></div>
+      <div id="msg-thread-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+    <div id="msg-panel" style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3)">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:48px;height:48px;opacity:.2"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        <div style="font-size:13px;font-weight:500">Select a conversation</div>
+        <div style="font-size:12px;color:var(--text3)">Choose from the list on the left</div>
+      </div>
+    </div>
+  </div>`;
+
+  /* Render shell first (creates search input), then populate thread list */
+  renderSidebarShell();
+  updateThreadList();
+
+  /* Auto-open first thread */
+  const threads = getThreadPreviews();
+  if (threads.length > 0) { selectedRoot = threads[0].rootId; openThread(selectedRoot, false); }
+  else {
+    const alerts = getAlerts();
+    if (alerts.length > 0) { selectedRoot = alerts[0].id; openThread(selectedRoot, true); }
+  }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   COMPOSE + SEND (FIX 1: principal can only message teachers)
+   ════════════════════════════════════════════════════════════════════════════ */
 function openComposeModal() {
-  const u=STATE.currentUser;
-  let toOptions='';
-  if(u.role==='teacher'){
-    const myParents=STATE.parents.filter(p=>STATE.students.some(s=>s.teacherId===u.teacherId&&s.id===p.childId));
-    toOptions=`<option value="">-- Select recipient --</option>${myParents.map(p=>`<option value="parent|${p.id}">Parent: ${p.name} (${STATE.students.find(s=>s.id===p.childId)?.name})</option>`).join('')}`;
-  } else if(u.role==='parent'){
-    const child=STATE.students.find(s=>s.id===u.childId);
-    const teacher=child?STATE.teachers.find(t=>t.id===child.teacherId):null;
-    toOptions=teacher?`<option value="teacher|${teacher.id}">${teacher.name} (Class Teacher)</option>`:'<option>No teacher found</option>';
+  const u = STATE.currentUser;
+  let toOptions = '';
+  if (u.role === 'teacher') {
+    const myParents = STATE.parents.filter(p => STATE.students.some(s => s.teacherId === u.teacherId && s.id === p.childId));
+    const otherTeachers = STATE.teachers.filter(t => t.id !== u.teacherId);
+    toOptions = `<option value="">-- Select recipient --</option>`
+      + `<optgroup label="Parents">${myParents.map(p=>`<option value="parent|${p.id}">Parent: ${p.name} (${STATE.students.find(s=>s.id===p.childId)?.name})</option>`).join('')}</optgroup>`
+      + (otherTeachers.length ? `<optgroup label="Teachers">${otherTeachers.map(t=>`<option value="teacher|${t.id}">Teacher: ${t.name}</option>`).join('')}</optgroup>` : '')
+      + `<optgroup label="Admin"><option value="principal|principal">Principal Roberto Cruz</option></optgroup>`;
+  } else if (u.role === 'parent') {
+    const child = STATE.students.find(s => s.id === u.childId);
+    const teacher = child ? STATE.teachers.find(t => t.id === child.teacherId) : null;
+    toOptions = teacher ? `<option value="teacher|${teacher.id}">${teacher.name} (Class Teacher)</option>` : '<option>No teacher found</option>';
+  } else if (u.role === 'principal') {
+    /* FIX 1: Principal can only compose to teachers */
+    toOptions = `<option value="">-- Select teacher --</option>${STATE.teachers.map(t=>`<option value="teacher|${t.id}">${t.name} (${t.grade} – ${t.section})</option>`).join('')}`;
   }
-  const studOptions=u.role==='teacher'?`<option value="">-- None --</option>${STATE.students.filter(s=>s.teacherId===u.teacherId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}`:'';
+  const studOptions = u.role === 'teacher'
+    ? `<option value="">-- None --</option>${STATE.students.filter(s=>s.teacherId===u.teacherId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}`
+    : '';
   openModal(`
   <div class="modal-header"><div class="modal-title">Compose Message</div><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>To*</label><select id="cm-to">${toOptions}</select></div>
-      ${u.role==='teacher'?`<div class="fg"><label>Regarding Student</label><select id="cm-sid">${studOptions}</select></div>`:''}
+      ${u.role==='teacher' ? `<div class="fg"><label>Regarding Student</label><select id="cm-sid">${studOptions}</select></div>` : ''}
       <div class="fg"><label>Subject*</label><input id="cm-sub" placeholder="Message subject"></div>
       <div class="fg"><label>Message*</label><textarea id="cm-body" style="min-height:120px" placeholder="Type your message..."></textarea></div>
     </div>
   </div>
   <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="sendCompose()">Send Message</button></div>`);
 }
-function sendCompose() {
-  const u=STATE.currentUser;
-  const toVal=document.getElementById('cm-to')?.value;
-  const sub=document.getElementById('cm-sub')?.value.trim();
-  const body=document.getElementById('cm-body')?.value.trim();
-  const sid=document.getElementById('cm-sid')?.value||null;
-  if(!toVal){toast('Select a recipient.','error');return;}
-  if(!sub||!body){toast('Subject and message required.','error');return;}
-  const [toRole,toId]=toVal.split('|');
-  STATE.messages.unshift({
-    id:STATE.nextMsgId++,fromRole:u.role,fromId:u.id,fromName:u.name,
-    toRole:toRole,toId:toId,subject:sub,body,
-    date:new Date().toISOString().split('T')[0],
-    time:new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
-    read:false,studentId:sid,thread:null,
-  });
-  updateUnreadBadge();buildSidebar(u.role);closeModal();toast('Message sent!');nav('messages');
-}
 
+function sendCompose() {
+  const u = STATE.currentUser;
+  const toVal = document.getElementById('cm-to')?.value;
+  const sub   = document.getElementById('cm-sub')?.value.trim();
+  const body  = document.getElementById('cm-body')?.value.trim();
+  const sid   = document.getElementById('cm-sid')?.value || null;
+
+  if (!toVal) { toast('Select a recipient.', 'error'); return; }
+  if (!sub || !body) { toast('Subject and message required.', 'error'); return; }
+
+  const [toRole, toId] = toVal.split('|');
+
+  STATE.messages.unshift({
+    id: STATE.nextMsgId++,
+    fromRole: u.role, fromId: u.id, fromName: u.name,
+    toRole, toId, subject: sub, body,
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }),
+    read: false, studentId: sid, thread: null,
+  });
+
+  let recipientEmail = null, recipientName = null;
+  if (toRole === 'parent') { const parent = STATE.parents.find(p=>p.id===toId); if(parent) { recipientEmail=parent.email; recipientName=parent.name; } }
+  else if (toRole === 'teacher') { const teacher = STATE.teachers.find(t=>t.id===toId); if(teacher) { recipientEmail=teacher.email; recipientName=teacher.name; } }
+  else if (toRole === 'principal') { recipientEmail='principal@tracked.edu'; recipientName='Principal Roberto Cruz'; }
+
+  if (recipientEmail && typeof sendMessageNotificationEmail === 'function') {
+    sendMessageNotificationEmail(recipientEmail, recipientName, u.name, sub, body);
+  }
+
+  updateUnreadBadge();
+  buildSidebar(u.role);
+  closeModal();
+  toast('Message sent! Email notification delivered. ✉️');
+  nav('messages');
+}
 /* ════════════════════════════════════════════════════════════════════════════
-   ANNOUNCEMENTS — redesigned bulletin board UI
+   ANNOUNCEMENTS — FIX 5: "View All Announcements" link removed
    ════════════════════════════════════════════════════════════════════════════ */
 function pgAnnouncements(el) {
   const role = STATE.currentUser.role;
-  const canPost = role === 'principal' || role === 'teacher';
+  const canPost = role === 'teacher';
   const catColors  = { academic:'#2A76C9', event:'#27ae60', holiday:'#C79800', general:'#6B3FA0' };
   const catBg      = { academic:'#DCE6FF', event:'#d5f5e3', holiday:'#FFF4C2', general:'#EDE5FF' };
   const catIcons   = { academic:'📋', event:'📅', holiday:'🎉', general:'📢' };
@@ -1950,19 +2450,15 @@ function pgAnnouncements(el) {
       ${canPost ? `<div class="page-actions"><button class="btn btn-primary" onclick="openAddAnnouncementModal()">📢 Post Announcement</button></div>` : ''}
     </div>
 
-    <!-- Filter tabs — matches reference image -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:24px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${cats.map(c=>`
-          <button onclick="window._annFilterCat='${c}';window._annRender()"
-            style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:25px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid ${filterCat===c?catColors[c]||'var(--green)':'var(--border)'};background:${filterCat===c?(catBg[c]||'var(--green-l)'):'#fff'};color:${filterCat===c?(catColors[c]||'var(--green)'):'var(--text2)'};transition:all .2s">
-            ${catFilterIcons[c]} ${catFilterLabels[c]}
-          </button>`).join('')}
-      </div>
-      <span style="font-size:13px;color:var(--green);font-weight:600;cursor:pointer" onclick="window._annFilterCat='all';window._annRender()">View All Announcements →</span>
+    <!-- FIX 5: Filter tabs only — no "View All Announcements" link on the right -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
+      ${cats.map(c=>`
+        <button onclick="window._annFilterCat='${c}';window._annRender()"
+          style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:25px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid ${filterCat===c?catColors[c]||'var(--green)':'var(--border)'};background:${filterCat===c?(catBg[c]||'var(--green-l)'):'#fff'};color:${filterCat===c?(catColors[c]||'var(--green)'):'var(--text2)'};transition:all .2s">
+          ${catFilterIcons[c]} ${catFilterLabels[c]}
+        </button>`).join('')}
     </div>
 
-    <!-- Cards grid -->
     ${filtered.length === 0
       ? `<div class="card" style="text-align:center;padding:60px"><div style="font-size:48px">📭</div><div class="fw7 ts mt-12">No announcements in this category</div></div>`
       : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px">
@@ -1988,8 +2484,6 @@ function _annCard(a, canPost, catColors, catBg, catLabels, catIcons, heroBg) {
     style="background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.07);transition:transform .2s,box-shadow .2s;cursor:pointer;display:flex;flex-direction:column"
     onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,.13)'"
     onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,.07)'">
-
-    <!-- Hero with date badge -->
     <div style="height:130px;background:${hero};position:relative;display:flex;align-items:flex-start;padding:14px;flex-shrink:0">
       <div style="background:#fff;border-radius:10px;padding:8px 12px;text-align:center;min-width:52px;box-shadow:0 2px 8px rgba(0,0,0,.2)">
         <div style="font-size:22px;font-weight:900;color:${color};line-height:1">${day}</div>
@@ -1999,8 +2493,6 @@ function _annCard(a, canPost, catColors, catBg, catLabels, catIcons, heroBg) {
       <div style="position:absolute;right:14px;bottom:8px;font-size:52px;opacity:.2">${icon}</div>
       ${a.pinned?`<div style="position:absolute;top:10px;right:12px;background:#C79800;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px">📌 PINNED</div>`:''}
     </div>
-
-    <!-- Body -->
     <div style="padding:14px 16px 14px;flex:1;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="display:inline-flex;align-items:center;gap:5px;background:${bg};color:${color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${icon} ${label}</span>
@@ -2022,7 +2514,6 @@ function _annCard(a, canPost, catColors, catBg, catLabels, catIcons, heroBg) {
 
 function openAnnouncementModal(id) {
   const a = STATE.announcements.find(x=>x.id===id); if (!a) return;
-  const catColors={academic:'var(--blue)',event:'var(--green)',holiday:'var(--amber)',general:'var(--text2)'};
   openModal(`
   <div class="modal-header"><div class="modal-title">${a.title}</div><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
@@ -2103,10 +2594,7 @@ function deleteAnnouncement(id,title){
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   REPORTS PAGE
-   ════════════════════════════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════════════════════════════
-   REPORTS PAGE — Class Performance Report + Attendance Report
+   REPORTS PAGE — unchanged from original
    ════════════════════════════════════════════════════════════════════════════ */
 function pgReports(el) {
   const role = STATE.currentUser.role;
@@ -2129,29 +2617,20 @@ function pgReports(el) {
   </div>
 
   <div class="g2 mb-20">
-    <!-- Class Performance Report card -->
     <div class="card">
       <div class="flex aic gap-14 mb-14">
         <div style="width:48px;height:48px;background:var(--green-l);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📊</div>
-        <div>
-          <div class="fw7 ts">Class Performance Report</div>
-          <div class="txs tm">Summary of grades per subject and quarter · DepEd format</div>
-        </div>
+        <div><div class="fw7 ts">Class Performance Report</div><div class="txs tm">Summary of grades per subject and quarter · DepEd format</div></div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-primary btn-sm f1" onclick="downloadClassPerformancePDF()">⬇ Download PDF</button>
         <button class="btn btn-secondary btn-sm f1" onclick="downloadClassPerformanceCSV()">⬇ Export CSV</button>
       </div>
     </div>
-
-    <!-- Attendance Report card -->
     <div class="card">
       <div class="flex aic gap-14 mb-14">
         <div style="width:48px;height:48px;background:var(--blue-l);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📅</div>
-        <div>
-          <div class="fw7 ts">Attendance Report</div>
-          <div class="txs tm">Monthly attendance records with rates per student</div>
-        </div>
+        <div><div class="fw7 ts">Attendance Report</div><div class="txs tm">Monthly attendance records with rates per student</div></div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-primary btn-sm f1" onclick="downloadAttendancePDF()">⬇ Download PDF</button>
@@ -2160,25 +2639,16 @@ function pgReports(el) {
     </div>
   </div>
 
-  <!-- Preview: Class Performance -->
   <div class="card mb-16">
     <div class="card-header"><div class="card-title" style="margin:0">📊 Class Performance Preview</div><span class="badge bg-gray">${grade} – ${section}</span></div>
     <div style="overflow-x:auto">
     <table>
-      <thead>
-        <tr>
-          <th>Rank</th><th>Student Name</th><th>LRN</th>
-          ${subs.map(s=>`<th style="font-size:10px">${s}</th>`).join('')}
-          <th>Average</th><th>Descriptor</th><th>Honors</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Rank</th><th>Student Name</th><th>LRN</th>${subs.map(s=>`<th style="font-size:10px">${s}</th>`).join('')}<th>Average</th><th>Descriptor</th><th>Honors</th></tr></thead>
       <tbody>
         ${sorted.map((s,i)=>{
           const h=getHonors(s.ov);
           return `<tr>
-            <td><strong>${i+1}</strong></td>
-            <td class="fw6">${s.name}</td>
-            <td class="txs tm">${s.lrn||'—'}</td>
+            <td><strong>${i+1}</strong></td><td class="fw6">${s.name}</td><td class="txs tm">${s.lrn||'—'}</td>
             ${subs.map(sub=>{const sc=subjectAvg(s.id,sub);return `<td><span class="badge ${gbadge(sc)}" style="font-size:11px">${sc||'—'}</span></td>`;}).join('')}
             <td><strong style="color:${gcol(s.ov)}">${s.ov}</strong></td>
             <td class="txs">${glabel(s.ov)}</td>
@@ -2186,11 +2656,9 @@ function pgReports(el) {
           </tr>`;
         }).join('')}
       </tbody>
-    </table>
-    </div>
+    </table></div>
   </div>
 
-  <!-- Preview: Attendance -->
   <div class="card">
     <div class="card-header"><div class="card-title" style="margin:0">📅 Attendance Report Preview</div><span class="badge bg-gray">${grade} – ${section}</span></div>
     <div style="overflow-x:auto">
@@ -2202,8 +2670,7 @@ function pgReports(el) {
           const t=at?at.total:{present:0,absent:0,late:0,total:0};
           const rate=t.total?Math.round(t.present/t.total*100):0;
           return `<tr>
-            <td class="fw6">${s.name}</td>
-            <td class="txs tm">${s.lrn||'—'}</td>
+            <td class="fw6">${s.name}</td><td class="txs tm">${s.lrn||'—'}</td>
             <td><span class="badge bg-green">${t.present}</span></td>
             <td><span class="badge bg-red">${t.absent}</span></td>
             <td><span class="badge bg-amber">${t.late}</span></td>
@@ -2213,11 +2680,9 @@ function pgReports(el) {
           </tr>`;
         }).join('')}
       </tbody>
-    </table>
-    </div>
+    </table></div>
   </div>`;
 
-  /* ── Class Performance PDF ─────────────────────────────────────────────── */
   window.downloadClassPerformancePDF = function() {
     const sy='2024-2025';
     const rows = sorted.map((s,i)=>{
@@ -2234,67 +2699,37 @@ function pgReports(el) {
       </tr>`;
     }).join('');
     const subHeaders = subs.map(s=>`<th style="padding:6px 8px;border:1px solid #999;background:#dce6ff;font-size:11px">${s}</th>`).join('');
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Class Performance Report</title>
-    <style>
-      body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:20px}
-      h2{text-align:center;margin:0;font-size:15px}
-      .sub{text-align:center;font-size:12px;color:#333;margin-bottom:4px}
-      table{width:100%;border-collapse:collapse;margin-top:14px}
-      th{background:#1856A8;color:#fff;padding:7px 8px;border:1px solid #999;text-align:center}
-      .footer{margin-top:40px;display:flex;justify-content:space-between}
-      .sig{text-align:center;width:200px}
-      .sig-line{border-bottom:1px solid #000;margin-bottom:4px;height:40px}
-    </style></head><body>
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Class Performance Report</title>
+    <style>body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:20px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#1856A8;color:#fff;padding:7px 8px;border:1px solid #999;text-align:center}.footer{margin-top:40px;display:flex;justify-content:space-between}.sig{text-align:center;width:200px}.sig-line{border-bottom:1px solid #000;margin-bottom:4px;height:40px}</style>
+    </head><body>
     <div style="text-align:center;margin-bottom:12px">
-      <div style="font-size:13px">Republic of the Philippines · Department of Education</div>
-      <div style="font-size:13px">Region V – Bicol · Division of Albay</div>
-      <h2>POLANGUI SOUTH CENTRAL SCHOOL</h2>
-      <div style="font-size:13px;font-weight:700;margin-top:6px">CLASS PERFORMANCE REPORT</div>
-      <div class="sub">School Year ${sy} · ${grade} – ${section} · Teacher: ${teacher?.name||'—'}</div>
+      <div>Republic of the Philippines · Department of Education</div>
+      <div>Region V – Bicol · Division of Albay</div>
+      <h2 style="margin:4px 0">POLANGUI SOUTH CENTRAL SCHOOL</h2>
+      <div style="font-weight:700">CLASS PERFORMANCE REPORT — SY ${sy}</div>
+      <div>${grade} – ${section} · Teacher: ${teacher?.name||'—'}</div>
     </div>
-    <table>
-      <thead><tr>
-        <th>Rank</th><th>Name of Learner</th><th>LRN</th>
-        ${subHeaders}
-        <th>General Average</th><th>Descriptor</th><th>Honors</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <table><thead><tr><th>Rank</th><th>Name of Learner</th><th>LRN</th>${subHeaders}<th>General Average</th><th>Descriptor</th><th>Honors</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="footer">
-      <div class="sig"><div class="sig-line"></div><div>${teacher?.name||'Class Teacher'}</div><div style="font-size:10px">Class Adviser / Teacher</div></div>
+      <div class="sig"><div class="sig-line"></div><div>${teacher?.name||'Class Teacher'}</div><div style="font-size:10px">Class Adviser</div></div>
       <div class="sig"><div class="sig-line"></div><div>Principal Roberto Cruz</div><div style="font-size:10px">School Principal</div></div>
-    </div>
-    </body></html>`;
-    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-    const url  = URL.createObjectURL(blob);
-    const a2   = document.createElement('a');
-    a2.href    = url;
-    a2.download = `class_performance_${grade}_${section}.html`.replace(/ /g,'_');
-    a2.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    toast('✓ Class Performance report downloaded! Open the file in your browser then Ctrl+P → Save as PDF.');
+    </div></body></html>`;
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a2=document.createElement('a'); a2.href=url; a2.download=`class_performance_${grade}_${section}.html`.replace(/ /g,'_'); a2.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast('✓ Downloaded! Open in browser then Ctrl+P → Save as PDF.');
   };
 
-  /* ── Class Performance CSV ─────────────────────────────────────────────── */
   window.downloadClassPerformanceCSV = function() {
     const header=['Rank','Name','LRN',...subs,'General Average','Descriptor','Honors'];
     const rows=[header];
-    sorted.forEach((s,i)=>{
-      const h=getHonors(s.ov);
-      rows.push([i+1,s.name,s.lrn||'',
-        ...subs.map(sub=>subjectAvg(s.id,sub)||''),
-        s.ov,glabel(s.ov),h?h.label:'']);
-    });
+    sorted.forEach((s,i)=>{ const h=getHonors(s.ov); rows.push([i+1,s.name,s.lrn||'',...subs.map(sub=>subjectAvg(s.id,sub)||''),s.ov,glabel(s.ov),h?h.label:'']); });
     const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-    const a=document.createElement('a');
-    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-    a.download=`class_performance_${grade}_${section}.csv`.replace(/ /g,'_');
-    a.click();
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=`class_performance_${grade}_${section}.csv`.replace(/ /g,'_'); a.click();
     toast('Class Performance CSV downloaded!');
   };
 
-  /* ── Attendance PDF ────────────────────────────────────────────────────── */
   window.downloadAttendancePDF = function() {
     const sy='2024-2025';
     const months=['June','July','August','September','October','November','December','January','February','March'];
@@ -2302,10 +2737,7 @@ function pgReports(el) {
       const at=STATE.attendance[s.id];
       const t=at?at.total:{present:0,absent:0,late:0,total:0};
       const rate=t.total?Math.round(t.present/t.total*100):0;
-      const monthCells=months.map(m=>{
-        const mr=at?.monthly?.find(x=>x.m===m);
-        return mr?`<td style="text-align:center;padding:4px 6px;border:1px solid #ccc">${mr.p}</td>`:`<td style="text-align:center;padding:4px 6px;border:1px solid #ccc">—</td>`;
-      }).join('');
+      const monthCells=months.map(m=>{ const mr=at?.monthly?.find(x=>x.m===m); return mr?`<td style="text-align:center;padding:4px 6px;border:1px solid #ccc">${mr.p}</td>`:`<td style="text-align:center;padding:4px 6px;border:1px solid #ccc">—</td>`; }).join('');
       return `<tr style="background:${i%2===0?'#fff':'#f9f9f9'}">
         <td style="padding:5px 8px;border:1px solid #ccc;font-weight:600">${s.name}</td>
         <td style="padding:5px 8px;border:1px solid #ccc">${s.lrn||'—'}</td>
@@ -2317,125 +2749,212 @@ function pgReports(el) {
         <td style="text-align:center;padding:5px 8px;border:1px solid #ccc;font-weight:700;color:${rate>=90?'green':rate>=75?'#C79800':'red'}">${rate}%</td>
       </tr>`;
     }).join('');
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Attendance Report</title>
-    <style>
-      body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:16px}
-      h2{text-align:center;margin:0;font-size:14px}
-      table{width:100%;border-collapse:collapse;margin-top:12px}
-      th{background:#1856A8;color:#fff;padding:6px 8px;border:1px solid #999;text-align:center;font-size:10px}
-      .footer{margin-top:40px;display:flex;justify-content:space-between}
-      .sig{text-align:center;width:200px}
-      .sig-line{border-bottom:1px solid #000;margin-bottom:4px;height:40px}
-    </style></head><body>
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance Report</title>
+    <style>body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:16px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#1856A8;color:#fff;padding:6px 8px;border:1px solid #999;text-align:center;font-size:10px}.footer{margin-top:40px;display:flex;justify-content:space-between}.sig{text-align:center;width:200px}.sig-line{border-bottom:1px solid #000;margin-bottom:4px;height:40px}</style>
+    </head><body>
     <div style="text-align:center;margin-bottom:10px">
-      <div style="font-size:12px">Republic of the Philippines · Department of Education</div>
-      <div style="font-size:12px">Region V – Bicol · Division of Albay</div>
-      <h2>POLANGUI SOUTH CENTRAL SCHOOL</h2>
-      <div style="font-size:12px;font-weight:700;margin-top:5px">ATTENDANCE REPORT — SY ${sy}</div>
-      <div style="font-size:11px">${grade} – ${section} · Teacher: ${teacher?.name||'—'}</div>
+      <div>Republic of the Philippines · Department of Education · Region V – Bicol · Division of Albay</div>
+      <h2 style="margin:4px 0">POLANGUI SOUTH CENTRAL SCHOOL</h2>
+      <div style="font-weight:700">ATTENDANCE REPORT — SY ${sy}</div>
+      <div>${grade} – ${section} · Teacher: ${teacher?.name||'—'}</div>
     </div>
-    <table>
-      <thead><tr>
-        <th>Name of Learner</th><th>LRN</th>
-        ${months.map(m=>`<th>${m}</th>`).join('')}
-        <th>Total Present</th><th>Total Absent</th><th>Total Late</th><th>School Days</th><th>Rate</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <table><thead><tr><th>Name of Learner</th><th>LRN</th>${months.map(m=>`<th>${m}</th>`).join('')}<th>Total Present</th><th>Total Absent</th><th>Total Late</th><th>School Days</th><th>Rate</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="footer">
       <div class="sig"><div class="sig-line"></div><div>${teacher?.name||'Class Teacher'}</div><div style="font-size:10px">Class Adviser</div></div>
       <div class="sig"><div class="sig-line"></div><div>Principal Roberto Cruz</div><div style="font-size:10px">School Principal</div></div>
-    </div>
-    </body></html>`;
-    const blob2 = new Blob([html], {type:'text/html;charset=utf-8'});
-    const url2  = URL.createObjectURL(blob2);
-    const a3    = document.createElement('a');
-    a3.href     = url2;
-    a3.download = `attendance_report_${grade}_${section}.html`.replace(/ /g,'_');
-    a3.click();
-    setTimeout(()=>URL.revokeObjectURL(url2), 1000);
-    toast('✓ Attendance report downloaded! Open the file in your browser then Ctrl+P → Save as PDF.');
+    </div></body></html>`;
+    const blob2=new Blob([html],{type:'text/html;charset=utf-8'});
+    const url2=URL.createObjectURL(blob2);
+    const a3=document.createElement('a'); a3.href=url2; a3.download=`attendance_report_${grade}_${section}.html`.replace(/ /g,'_'); a3.click();
+    setTimeout(()=>URL.revokeObjectURL(url2),1000);
+    toast('✓ Downloaded! Open in browser then Ctrl+P → Save as PDF.');
   };
 
-  /* ── Attendance CSV ────────────────────────────────────────────────────── */
   window.downloadAttendanceCSV = function() {
     const months=['June','July','August','September','October','November','December','January','February','March'];
     const header=['Name','LRN',...months.map(m=>m+' (Present)'),'Total Present','Total Absent','Total Late','Total Days','Rate %'];
     const rows=[header];
-    myStudents.forEach(s=>{
-      const at=STATE.attendance[s.id];
-      const t=at?at.total:{present:0,absent:0,late:0,total:0};
-      const rate=t.total?Math.round(t.present/t.total*100):0;
-      rows.push([s.name,s.lrn||'',
-        ...months.map(m=>at?.monthly?.find(x=>x.m===m)?.p||0),
-        t.present,t.absent,t.late,t.total,rate+'%']);
-    });
+    myStudents.forEach(s=>{ const at=STATE.attendance[s.id]; const t=at?at.total:{present:0,absent:0,late:0,total:0}; const rate=t.total?Math.round(t.present/t.total*100):0; rows.push([s.name,s.lrn||'',...months.map(m=>at?.monthly?.find(x=>x.m===m)?.p||0),t.present,t.absent,t.late,t.total,rate+'%']); });
     const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-    const a=document.createElement('a');
-    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-    a.download=`attendance_${grade}_${section}.csv`.replace(/ /g,'_');
-    a.click();
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=`attendance_${grade}_${section}.csv`.replace(/ /g,'_'); a.click();
     toast('Attendance CSV downloaded!');
   };
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   PROFILE PAGE
+   PROFILE PAGE — FIX 6: unique per-role profiles with hero banner + stats
    ════════════════════════════════════════════════════════════════════════════ */
 function pgProfile(el) {
-  const u=STATE.currentUser;
-  const roleColor={principal:'var(--purple)',teacher:'var(--green)',parent:'var(--amber)'}[u.role];
-  const roleBg={principal:'var(--purple-l)',teacher:'var(--green-l)',parent:'var(--amber-l)'}[u.role];
-  el.innerHTML=`
-  <div class="page-head"><div><div class="page-title">My Profile</div><div class="page-sub">Manage your account settings</div></div></div>
-  <div class="g2">
-    <div class="card">
-      <div class="flex aic gap-16 mb-16" style="padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <div id="avatar-wrap" style="position:relative;width:96px;height:96px;flex-shrink:0;border-radius:18px;overflow:hidden;cursor:pointer">
-          <div id="avatar-display" style="width:96px;height:96px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:${roleColor};background:${roleBg};border-radius:18px">${u.avatar?`<img src="${u.avatar}" style="width:96px;height:96px;object-fit:cover;border-radius:18px">`:ini(u.name)}</div>
-          <div id="avatar-overlay" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:6px 0;opacity:0;transition:opacity .2s;pointer-events:none">📷 Change</div>
-          <input type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="previewProfilePic(event)">
+  const u = STATE.currentUser;
+
+  const roleConfig = {
+    principal: {
+      heroBg: 'linear-gradient(135deg,#6B3FA0 0%,#3C3489 100%)',
+      badge: '🏛️ School Principal',
+      color: 'var(--purple)', bg: 'var(--purple-l)',
+      stats: [
+        { label:'Total Students', val: STATE.students.filter(s=>s.status==='active').length, icon:'👥' },
+        { label:'Total Teachers', val: STATE.teachers.length, icon:'👩‍🏫' },
+        { label:'Pending Approvals', val: STATE.pendingTeachers.filter(t=>t.status==='pending').length, icon:'⏳' },
+        { label:'Total Classes', val: STATE.classes.length, icon:'🏫' },
+      ],
+    },
+    teacher: {
+      heroBg: 'linear-gradient(135deg,#1a7a44 0%,#2A76C9 100%)',
+      badge: '👩‍🏫 Homeroom Teacher',
+      color: 'var(--green)', bg: 'var(--green-l)',
+      stats: [
+        { label:'My Students', val: STATE.students.filter(s=>s.teacherId===u.teacherId&&s.status==='active').length, icon:'👥' },
+        { label:'Class Average', val: (()=>{
+          const sts=STATE.students.filter(s=>s.teacherId===u.teacherId&&s.status==='active');
+          const avgs=sts.map(s=>studentAverage(s.id)).filter(v=>v>0);
+          return avgs.length?Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length):0;
+        })(), icon:'📊' },
+        { label:'Honor Students', val: STATE.students.filter(s=>s.teacherId===u.teacherId&&getHonors(studentAverage(s.id))).length, icon:'🏆' },
+        { label:'Parents Linked', val: STATE.parents.filter(p=>STATE.students.some(s=>s.teacherId===u.teacherId&&s.id===p.childId)).length, icon:'👨‍👩‍👧' },
+      ],
+    },
+    parent: {
+      heroBg: 'linear-gradient(135deg,#C79800 0%,#E07B00 100%)',
+      badge: '👨‍👩‍👧 Parent / Guardian',
+      color: 'var(--amber)', bg: 'var(--amber-l)',
+      stats: (()=>{
+        const child = STATE.students.find(s=>s.id===u.childId);
+        const ov = child ? studentAverage(child.id) : 0;
+        const at = child ? STATE.attendance[child.id] : null;
+        const rate = at?.total?.total ? Math.round(at.total.present/at.total.total*100) : 0;
+        return [
+          { label:'Child', val: child?.name||'—', icon:'👧' },
+          { label:'Overall Average', val: ov, icon:'📊' },
+          { label:'Attendance Rate', val: rate+'%', icon:'📋' },
+          { label:'Unread Alerts', val: STATE.messages.filter(m=>m.isAlert&&m.studentId===u.childId&&!m.read).length, icon:'🔔' },
+        ];
+      })(),
+    },
+  };
+
+  const cfg = roleConfig[u.role] || roleConfig.teacher;
+
+  el.innerHTML = `
+  <!-- Hero Banner unique per role -->
+  <div style="background:${cfg.heroBg};border-radius:var(--rl);padding:32px;margin-bottom:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.06);top:-60px;right:-40px;pointer-events:none"></div>
+    <div style="position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06);bottom:-30px;right:160px;pointer-events:none"></div>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <!-- Avatar with upload -->
+      <div style="position:relative;flex-shrink:0">
+        <div id="profile-hero-av" style="width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;background:rgba(255,255,255,.15);overflow:hidden">
+          ${u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : ini(u.name)}
         </div>
-        <div><div style="font-size:20px;font-weight:800">${u.name}</div><div class="ts tm">${u.role.charAt(0).toUpperCase()+u.role.slice(1)}${u.grade?` · ${u.grade} – ${u.section}`:''}</div><div class="txs tmm">${u.email}</div><button class="btn btn-secondary btn-xs mt-8" onclick="resetProfilePic()">Remove Photo</button></div>
+        <label style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)" title="Change photo">
+          <span style="font-size:13px">📷</span>
+          <input type="file" accept="image/*" style="display:none" onchange="previewProfilePic(event)">
+        </label>
       </div>
+      <!-- Info -->
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:4px">${u.name}</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);padding:4px 14px;border-radius:20px;font-size:13px;color:rgba(255,255,255,.9);margin-bottom:8px">${cfg.badge}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.7)">${u.email}${u.grade ? ` · ${u.grade} – ${u.section}` : ''}${u.school ? ` · ${u.school}` : ''}</div>
+      </div>
+      <!-- Role-specific stats -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;min-width:200px">
+        ${cfg.stats.map(s => `<div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;text-align:center">
+          <div style="font-size:18px;margin-bottom:2px">${s.icon}</div>
+          <div style="font-size:16px;font-weight:800;color:#fff">${s.val}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.7)">${s.label}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- Edit form -->
+    <div class="card">
+      <div class="card-title">Edit Profile</div>
       <div class="form-grid form-row-2">
         <div class="fg"><label>Full Name</label><input id="pf-name" value="${u.name}"></div>
         <div class="fg"><label>Email</label><input id="pf-email" type="email" value="${u.email}"></div>
-        ${u.role!=='principal'?`<div class="fg"><label>Phone</label><input id="pf-phone" value="${u.phone||''}"></div>`:''}
+        ${u.role !== 'principal' ? `<div class="fg"><label>Phone</label><input id="pf-phone" value="${u.phone||''}"></div>` : ''}
+        <div class="fg">
+          <label>Change Password</label>
+          <div style="position:relative">
+            <input id="pf-pass" type="password" placeholder="Leave blank to keep current" style="width:100%;padding-right:42px">
+            <button type="button" onclick="var i=document.getElementById('pf-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;padding:0">👁</button>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-primary mt-12" onclick="saveProfile()">Save Changes</button>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-primary f1" onclick="saveProfile()">💾 Save Changes</button>
+        <button class="btn btn-secondary" onclick="resetProfilePic()">🗑 Remove Photo</button>
+      </div>
     </div>
-    <div class="card">
-      <div class="fw7 ts mb-12">Account Info</div>
-      <div style="display:grid;gap:10px">
-        <div style="padding:12px;background:var(--bg);border-radius:9px"><div class="txs tmm fw7">Role</div><div class="fw6 ts mt-4">${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</div></div>
-        ${u.grade?`<div style="padding:12px;background:var(--bg);border-radius:9px"><div class="txs tmm fw7">Assigned Class</div><div class="fw6 ts mt-4">${u.grade} – ${u.section}</div></div>`:''}
-        ${u.school?`<div style="padding:12px;background:var(--bg);border-radius:9px"><div class="txs tmm fw7">School</div><div class="fw6 ts mt-4">${u.school}</div></div>`:''}
-        ${u.childId?`<div style="padding:12px;background:var(--bg);border-radius:9px"><div class="txs tmm fw7">Child</div><div class="fw6 ts mt-4">${STATE.students.find(s=>s.id===u.childId)?.name||u.childId}</div></div>`:''}
+
+    <!-- Account info + actions -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Account Details</div>
+        <div style="display:grid;gap:8px">
+          <div style="padding:11px 14px;background:var(--bg);border-radius:9px;display:flex;align-items:center;justify-content:space-between">
+            <div class="txs tmm fw7">Role</div>
+            <span style="background:${cfg.bg};color:${cfg.color};padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700">${cfg.badge}</span>
+          </div>
+          ${u.grade ? `<div style="padding:11px 14px;background:var(--bg);border-radius:9px;display:flex;align-items:center;justify-content:space-between"><div class="txs tmm fw7">Class</div><div class="fw6 ts">${u.grade} – ${u.section}</div></div>` : ''}
+          ${u.school ? `<div style="padding:11px 14px;background:var(--bg);border-radius:9px;display:flex;align-items:center;justify-content:space-between"><div class="txs tmm fw7">School</div><div class="fw6 ts">${u.school}</div></div>` : ''}
+          ${u.childId ? `<div style="padding:11px 14px;background:var(--bg);border-radius:9px;display:flex;align-items:center;justify-content:space-between"><div class="txs tmm fw7">Child</div><div class="fw6 ts">${STATE.students.find(s=>s.id===u.childId)?.name||u.childId}</div></div>` : ''}
+          <div style="padding:11px 14px;background:var(--bg);border-radius:9px;display:flex;align-items:center;justify-content:space-between">
+            <div class="txs tmm fw7">Account Email</div><div class="fw6 txs">${u.email}</div>
+          </div>
+        </div>
       </div>
-      <div class="flex gap-10 mt-16">
-        <button class="btn btn-secondary f1" onclick="nav('dashboard')">← Dashboard</button>
-        <button class="btn btn-danger f1" onclick="doLogout()">Sign Out</button>
+      <div class="card" style="border-color:var(--red-l)">
+        <div class="card-title" style="color:var(--red)">⚠️ Danger Zone</div>
+        <div style="display:grid;gap:8px">
+          <button class="btn btn-secondary" onclick="nav('dashboard')" style="justify-content:flex-start">← Back to Dashboard</button>
+          <button class="btn btn-danger" onclick="doLogout()" style="justify-content:flex-start">🚪 Sign Out of TrackEd</button>
+        </div>
       </div>
     </div>
   </div>`;
-  const wrap=document.getElementById('avatar-wrap'), ov=document.getElementById('avatar-overlay');
-  if(wrap&&ov){wrap.addEventListener('mouseenter',()=>ov.style.opacity='1');wrap.addEventListener('mouseleave',()=>ov.style.opacity='0');}
-  window._profilePic=undefined;
+
+  window._profilePic = undefined;
 }
-function previewProfilePic(evt){
-  const file=evt.target.files[0];if(!file)return;
-  const reader=new FileReader();reader.onload=e=>{const d=document.getElementById('avatar-display');if(d)d.innerHTML=`<img src="${e.target.result}" style="width:96px;height:96px;object-fit:cover;border-radius:18px">`;window._profilePic=e.target.result;};reader.readAsDataURL(file);
+
+function previewProfilePic(evt) {
+  const file = evt.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const heroAv = document.getElementById('profile-hero-av');
+    const legacyAv = document.getElementById('avatar-display');
+    if (heroAv) heroAv.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+    if (legacyAv) legacyAv.innerHTML = `<img src="${e.target.result}" style="width:96px;height:96px;object-fit:cover;border-radius:18px">`;
+    window._profilePic = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
-function resetProfilePic(){const u=STATE.currentUser;const d=document.getElementById('avatar-display');if(d)d.innerHTML=ini(u.name);window._profilePic='';}
-function saveProfile(){
-  const u=STATE.currentUser;
-  const name=document.getElementById('pf-name')?.value.trim(),email=document.getElementById('pf-email')?.value.trim();
-  if(!name||!email){toast('Name and email required.','error');return;}
-  u.name=name;u.email=email;
-  if(window._profilePic!==undefined)u.avatar=window._profilePic||null;
-  if(u.role!=='principal')u.phone=document.getElementById('pf-phone')?.value.trim()||u.phone;
-  setTopbarAvatar(u);document.getElementById('tb-name').textContent=u.name;
-  toast('Profile updated!');
+function resetProfilePic() {
+  const u = STATE.currentUser;
+  const heroAv = document.getElementById('profile-hero-av');
+  const legacyAv = document.getElementById('avatar-display');
+  if (heroAv) heroAv.innerHTML = ini(u.name);
+  if (legacyAv) legacyAv.innerHTML = ini(u.name);
+  window._profilePic = '';
+}
+function saveProfile() {
+  const u = STATE.currentUser;
+  const name  = document.getElementById('pf-name')?.value.trim();
+  const email = document.getElementById('pf-email')?.value.trim();
+  const pass  = document.getElementById('pf-pass')?.value.trim();
+  if (!name || !email) { toast('Name and email required.', 'error'); return; }
+  u.name  = name;
+  u.email = email;
+  if (pass) u.password = pass;
+  if (window._profilePic !== undefined) u.avatar = window._profilePic || null;
+  if (u.role !== 'principal') u.phone = document.getElementById('pf-phone')?.value.trim() || u.phone;
+  setTopbarAvatar(u);
+  document.getElementById('tb-name').textContent = u.name;
+  const heroAv = document.getElementById('profile-hero-av');
+  if (heroAv) heroAv.innerHTML = u.avatar ? `<img src="${u.avatar}" style="width:100%;height:100%;object-fit:cover">` : ini(u.name);
+  toast('Profile updated! ✅');
 }
